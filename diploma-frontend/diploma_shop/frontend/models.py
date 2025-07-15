@@ -30,6 +30,7 @@ class Specification(models.Model):
     name = models.CharField(max_length=50)
     value = models.CharField(max_length=50)
 
+
 class Product(models.Model):
     title = models.CharField(max_length=50)
     description = models.TextField(max_length=200, blank=True)
@@ -37,9 +38,9 @@ class Product(models.Model):
     category = models.ForeignKey(Category, blank=True, on_delete=models.CASCADE)
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     count = models.IntegerField(default=0)
-    date = models.DateTimeField()
+    date = models.DateTimeField(auto_now_add=True)
     freeDelivery = models.BooleanField(default=True)
-    images = models.ForeignKey(Image, on_delete=models.CASCADE)
+    images = models.ForeignKey(Image, blank=True, on_delete=models.CASCADE)
     tags = models.ManyToManyField(Tag)
     reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE)
