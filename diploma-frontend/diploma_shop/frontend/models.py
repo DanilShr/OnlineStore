@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+
 # Create your models here.
 
 
@@ -45,7 +46,12 @@ class Product(models.Model):
     date = models.DateTimeField(auto_now_add=True)
     freeDelivery = models.BooleanField(default=True, blank=True, null=True)
     images = models.ForeignKey(Image, blank=True, on_delete=models.CASCADE, null=True)
-    tags = models.ManyToManyField(Tag, blank=True, null=True)
+    tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE, null=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
     rating = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+
+
+class Basket(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    products = models.ManyToManyField(Product, blank=True)
