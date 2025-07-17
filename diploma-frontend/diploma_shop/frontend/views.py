@@ -10,8 +10,8 @@ from .serialized import (ProductSerializer,
 
 class ProductDetailsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'images', 'reviews', 'specifications'))
-                .prefetch_related('tags'))
+                 .select_related('category', 'reviews', 'specifications'))
+                .prefetch_related('tags', 'images'))
     serializer_class = ProductSerializer
 
 

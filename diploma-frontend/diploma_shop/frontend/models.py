@@ -23,7 +23,7 @@ def user_directory_path(instance, filename):
 
 
 class Image(models.Model):
-    src = models.ImageField(upload_to=user_directory_path)
+    src = models.ImageField(upload_to='images/')
     alt = models.CharField(max_length=50)
 
 
@@ -45,7 +45,7 @@ class Product(models.Model):
     count = models.IntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True)
     freeDelivery = models.BooleanField(default=True, blank=True, null=True)
-    images = models.ForeignKey(Image, blank=True, on_delete=models.CASCADE, null=True)
+    images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE, null=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
