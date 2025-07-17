@@ -5,7 +5,8 @@ from rest_framework.viewsets import ModelViewSet
 from .models import Product, Image, Basket
 from .serialized import (ProductSerializer,
                          ImageSerializer,
-                         BasketSerializer)
+                         BasketSerializer,
+                         ProductShortSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -23,7 +24,14 @@ class ImageDetailsView(ModelViewSet):
 class BasketListView(ModelViewSet):
     user = User.objects.first()
     queryset = ((Basket.objects.prefetch_related('products')
-                .filter(user=user))
+                 .filter(user=user))
                 .only('products'))
 
     serializer_class = BasketSerializer
+
+
+class PopularProductsView(ModelViewSet):
+    queryset = ((Product.objects
+                 .select_related('category', 'reviews', 'specifications'))
+                .prefetch_related('tags', 'images').filter(rating__gte=3))[:5]
+    serializer_class = ProductShortSerializer

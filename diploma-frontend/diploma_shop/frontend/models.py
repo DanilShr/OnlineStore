@@ -49,7 +49,7 @@ class Product(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE, null=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
-    rating = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    rating = models.FloatField(default=0)
 
 
 class Basket(models.Model):

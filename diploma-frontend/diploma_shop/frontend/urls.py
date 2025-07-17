@@ -4,13 +4,15 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from .views import (ProductDetailsView,
                     ImageDetailsView,
-                    BasketListView)
+                    BasketListView,
+                    PopularProductsView,)
 from rest_framework import routers
 
 router = routers.DefaultRouter()
 router.register(r'product', ProductDetailsView)
 router.register(r'images', ImageDetailsView)
 router.register(r"basket", BasketListView)
+router.register(r'products/popular', PopularProductsView, basename="popular-products")
 
 
 urlpatterns = [
