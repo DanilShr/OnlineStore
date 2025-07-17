@@ -35,3 +35,8 @@ class PopularProductsView(ModelViewSet):
                  .select_related('category', 'reviews', 'specifications'))
                 .prefetch_related('tags', 'images').filter(rating__gte=3))[:5]
     serializer_class = ProductShortSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results", [])  # Оставляем только results
+        return response

@@ -7,16 +7,21 @@ from .views import (ProductDetailsView,
                     BasketListView,
                     PopularProductsView,)
 from rest_framework import routers
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 router = routers.DefaultRouter()
 router.register(r'product', ProductDetailsView)
 router.register(r'images', ImageDetailsView)
 router.register(r"basket", BasketListView)
 router.register(r'products/popular', PopularProductsView, basename="popular-products")
+router.register(r'products/limited', PopularProductsView, basename="limited-products")
 
 
 urlpatterns = [
     path('api/', include(router.urls)),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger'),
+
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),

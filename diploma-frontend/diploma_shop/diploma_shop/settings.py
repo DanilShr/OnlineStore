@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'frontend',
     'rest_framework',
     'rest_framework_swagger',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -120,7 +121,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": 'My Site Project API',
+    "DESCRIPTION": 'My site with shop add adn custom auth',
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False, #настройка для того чтобы не показывать информацию по странице документации
 }
 
 MEDIA_ROOT = BASE_DIR / 'uploads'

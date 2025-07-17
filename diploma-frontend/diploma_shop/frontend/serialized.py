@@ -60,6 +60,8 @@ class ProductShortSerializer(serializers.ModelSerializer):
                   'tags', 'reviews', 'rating']
 
 
+
+
 class BasketSerializer(serializers.ModelSerializer):
     products = ProductSerializer(many=True)
 
