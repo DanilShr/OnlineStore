@@ -5,7 +5,10 @@ from django.views.generic import TemplateView
 from .views import (ProductDetailsView,
                     ImageDetailsView,
                     BasketListView,
-                    PopularProductsView,)
+                    PopularProductsView,
+                    SingOut,
+                    SingIn,
+                    SingUp)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
@@ -16,12 +19,14 @@ router.register(r"basket", BasketListView)
 router.register(r'products/popular', PopularProductsView, basename="popular-products")
 router.register(r'products/limited', PopularProductsView, basename="limited-products")
 
-
 urlpatterns = [
     path('api/', include(router.urls)),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger'),
 
+    path('api/sign-in', SingIn.as_view()),
+    path('api/sign-out', SingOut.as_view()),
+    path('api/sign-up', SingUp.as_view()),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),
