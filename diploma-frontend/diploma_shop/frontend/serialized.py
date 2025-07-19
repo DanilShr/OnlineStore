@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from .models import Product, Image, Basket, Tag, Review
+from .models import (Product,
+                     Image,
+                     Basket,
+                     Tag,
+                     Review,
+                     Subcategories,
+                     Category)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -61,10 +67,18 @@ class ProductShortSerializer(serializers.ModelSerializer):
 
 
 
-
-class BasketSerializer(serializers.ModelSerializer):
-    products = ProductSerializer(many=True)
+class SubcategoriesSerializer(serializers.ModelSerializer):
+    image = ProductImageSerializer
 
     class Meta:
-        model = Basket
-        fields = ['products']
+        model = Subcategories
+        fields = ['id', 'title', 'image']
+
+
+class CategoriesSerializer(serializers.ModelSerializer):
+    image = ProductImageSerializer
+    subcategories = SubcategoriesSerializer(many=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'title', 'image', 'subcategories']

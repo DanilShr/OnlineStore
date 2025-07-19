@@ -4,20 +4,24 @@ from django.urls import path, include
 from django.views.generic import TemplateView
 from .views import (ProductDetailsView,
                     ImageDetailsView,
-                    BasketListView,
                     PopularProductsView,
                     SingOut,
                     SingIn,
-                    SingUp)
+                    SingUp,
+                    BannerView,
+                    CategoriesView,
+                    BasketView)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 router = routers.DefaultRouter()
 router.register(r'product', ProductDetailsView)
 router.register(r'images', ImageDetailsView)
-router.register(r"basket", BasketListView)
 router.register(r'products/popular', PopularProductsView, basename="popular-products")
 router.register(r'products/limited', PopularProductsView, basename="limited-products")
+router.register(r'banners', BannerView, basename='banners')
+router.register(r'basket', BasketView, basename='basket')
+router.register(r"categories", CategoriesView)
 
 urlpatterns = [
     path('api/', include(router.urls)),

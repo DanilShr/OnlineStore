@@ -27,8 +27,15 @@ class Image(models.Model):
     alt = models.CharField(max_length=50)
 
 
+class Subcategories(models.Model):
+    title = models.CharField(max_length=50)
+    image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
+
+
 class Category(models.Model):
     title = models.CharField(max_length=50)
+    image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
+    subcategories = models.ManyToManyField(Subcategories, blank=True)
 
 
 class Specification(models.Model):

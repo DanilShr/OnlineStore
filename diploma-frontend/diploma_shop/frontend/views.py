@@ -13,11 +13,14 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ViewSet
 
-from .models import Product, Image, Basket
+from .models import (Product,
+                     Image,
+                     Basket,
+                     Category)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
-                         BasketSerializer,
-                         ProductShortSerializer)
+                         ProductShortSerializer,
+                         CategoriesSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -32,13 +35,6 @@ class ImageDetailsView(ModelViewSet):
     serializer_class = ImageSerializer
 
 
-class BasketListView(ModelViewSet):
-    user = User.objects.first()
-    queryset = ((Basket.objects.prefetch_related('products')
-                 .filter(user=user))
-                .only('products'))
-
-    serializer_class = BasketSerializer
 
 
 class PopularProductsView(ModelViewSet):
@@ -96,3 +92,39 @@ class SingUp(APIView):
                                      first_name=name,
                                      )
             return HttpResponse("OK", status=200)
+
+
+class BannerView(ModelViewSet):
+    queryset = ((Product.objects
+                 .select_related('category', 'reviews', 'specifications'))
+                .prefetch_related('tags', 'images'))
+    serializer_class = ProductShortSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results", [])
+        return response
+
+
+class CategoriesView(ModelViewSet):
+    queryset = (Category.objects
+                .select_related('image')
+                .prefetch_related('subcategories'))
+    serializer_class = CategoriesSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results", [])
+        return response
+
+
+class BasketView(ModelViewSet):
+    queryset = ((Product.objects
+                 .select_related('category', 'reviews', 'specifications'))
+                .prefetch_related('tags', 'images').filter(id=1))
+    serializer_class = ProductShortSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results")[0]
+        return response
