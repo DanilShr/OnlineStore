@@ -10,7 +10,7 @@ from .views import (ProductDetailsView,
                     SingUp,
                     BannerView,
                     CategoriesView,
-                    BasketView)
+                    BasketAddView,)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
@@ -20,7 +20,6 @@ router.register(r'images', ImageDetailsView)
 router.register(r'products/popular', PopularProductsView, basename="popular-products")
 router.register(r'products/limited', PopularProductsView, basename="limited-products")
 router.register(r'banners', BannerView, basename='banners')
-router.register(r'basket', BasketView, basename='basket')
 router.register(r"categories", CategoriesView)
 
 urlpatterns = [
@@ -31,6 +30,7 @@ urlpatterns = [
     path('api/sign-in', SingIn.as_view()),
     path('api/sign-out', SingOut.as_view()),
     path('api/sign-up', SingUp.as_view()),
+    path('api/basket', BasketAddView.as_view()),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),

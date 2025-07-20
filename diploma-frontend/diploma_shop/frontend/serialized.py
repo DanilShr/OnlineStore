@@ -82,3 +82,10 @@ class CategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'title', 'image', 'subcategories']
+
+
+class BasketProductsSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    class Meta:
+        model = Product
+        fields = ['id', 'count']

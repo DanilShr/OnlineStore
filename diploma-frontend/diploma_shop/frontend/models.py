@@ -50,7 +50,7 @@ class Product(models.Model):
     category = models.ForeignKey(Category, blank=True, on_delete=models.CASCADE)
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     count = models.IntegerField(default=0)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     freeDelivery = models.BooleanField(default=True, blank=True, null=True)
     images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)

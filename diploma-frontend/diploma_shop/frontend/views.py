@@ -20,7 +20,8 @@ from .models import (Product,
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
-                         CategoriesSerializer)
+                         CategoriesSerializer,
+                         BasketProductsSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -33,8 +34,6 @@ class ProductDetailsView(ModelViewSet):
 class ImageDetailsView(ModelViewSet):
     queryset = Image.objects.all()
     serializer_class = ImageSerializer
-
-
 
 
 class PopularProductsView(ModelViewSet):
@@ -118,13 +117,18 @@ class CategoriesView(ModelViewSet):
         return response
 
 
-class BasketView(ModelViewSet):
-    queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images').filter(id=1))
-    serializer_class = ProductShortSerializer
-
-    def list(self, request, *args, **kwargs):
-        response = super().list(request, *args, **kwargs)
-        response.data = response.data.get("results")[0]
-        return response
+class BasketAddView(APIView):
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        form = BasketProductsSerializer(data=request.data)
+        if form.is_valid():
+            id = form.validated_data.get("id")
+            count = form.validated_data.get("count")
+            product = Product.objects.get(id=id)
+            if product.count > int(count):
+                print(product.count)
+                basket, created = Basket.objects.get_or_create(user=request.user)
+                basket.products.add(product)
+                product.count -= count
+                product.save()
+                return HttpResponse("OK", status=200)

@@ -23,7 +23,7 @@ SECRET_KEY = 'django-insecure-#**g(9spz%(48hepg0$5zy+gu_0gtdcjbs+i%$&=y2$nxr!d-%
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+APPEND_SLASH = False
 ALLOWED_HOSTS = []
 
 # Application definition
@@ -130,7 +130,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": 'My Site Project API',
     "DESCRIPTION": 'My site with shop add adn custom auth',
     "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False, #настройка для того чтобы не показывать информацию по странице документации
+    "SERVE_INCLUDE_SCHEMA": False,  # настройка для того чтобы не показывать информацию по странице документации
 }
 
 MEDIA_ROOT = BASE_DIR / 'uploads'
