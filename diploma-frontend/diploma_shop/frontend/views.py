@@ -2,7 +2,7 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.http import HttpResponse, HttpResponseServerError
+from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
 from requests import Response
 from rest_framework import status, request
@@ -118,6 +118,15 @@ class CategoriesView(ModelViewSet):
 
 
 class BasketAddView(APIView):
+    def get(self, request, *args, **kwargs):
+        basket = Basket.objects.prefetch_related('products').filter(user=request.user).first()
+        products = basket.products.all()
+        serialized = ProductShortSerializer(products, many=True)
+        data = serialized.data
+        # for product in data:
+        #     product['count'] = count
+        return JsonResponse(serialized.data, safe=False, status=200)
+
     def post(self, request, *args, **kwargs):
         print(request.data)
         form = BasketProductsSerializer(data=request.data)
@@ -126,9 +135,16 @@ class BasketAddView(APIView):
             count = form.validated_data.get("count")
             product = Product.objects.get(id=id)
             if product.count > int(count):
-                print(product.count)
-                basket, created = Basket.objects.get_or_create(user=request.user)
-                basket.products.add(product)
+                basket, created = Basket.objects.get_or_create(user=request.user, products=product)
+                basket.count += count
+                basket.price += product.price * count
+                basket.save()
                 product.count -= count
                 product.save()
+                # basket.count += count
+                # basket.price += product.price * count
+                # product.count -= count
+                # basket.products.add(product)
+                # basket.save()
+                # product.save()
                 return HttpResponse("OK", status=200)

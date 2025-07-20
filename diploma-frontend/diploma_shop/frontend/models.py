@@ -61,4 +61,6 @@ class Product(models.Model):
 
 class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, blank=True)
+    products = models.ForeignKey(Product, blank=True, on_delete=models.CASCADE, default='')
+    count = models.IntegerField(default=0)
+    price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
