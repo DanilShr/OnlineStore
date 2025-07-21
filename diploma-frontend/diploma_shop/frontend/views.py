@@ -121,12 +121,12 @@ class CategoriesView(ModelViewSet):
 class BasketAddView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
-        baskets = Basket.objects.select_related('products').filter(user=user)
+        baskets = Basket.objects.select_related('products').only('products').filter(user=user)
         print(baskets)
         products = [basket.products for basket in baskets]
         print(products)
         for product in products:
-            b = Basket.objects.get(Q(products=product) & Q(user=user))
+            b = Basket.objects.only('count', 'price').get(Q(products=product) & Q(user=user))
             count = b.count
             price = b.price
             product.count = count
