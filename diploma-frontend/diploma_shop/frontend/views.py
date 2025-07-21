@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
 from requests import Response
@@ -119,12 +120,20 @@ class CategoriesView(ModelViewSet):
 
 class BasketAddView(APIView):
     def get(self, request, *args, **kwargs):
-        basket = Basket.objects.prefetch_related('products').filter(user=request.user).first()
-        products = basket.products.all()
+        user = request.user
+        baskets = Basket.objects.select_related('products').filter(user=user)
+        print(baskets)
+        products = [basket.products for basket in baskets]
+        print(products)
+        for product in products:
+            b = Basket.objects.get(Q(products=product) & Q(user=user))
+            count = b.count
+            price = b.price
+            product.count = count
+            product.price = price
         serialized = ProductShortSerializer(products, many=True)
         data = serialized.data
-        # for product in data:
-        #     product['count'] = count
+        print(f'Data: {data}')
         return JsonResponse(serialized.data, safe=False, status=200)
 
     def post(self, request, *args, **kwargs):
