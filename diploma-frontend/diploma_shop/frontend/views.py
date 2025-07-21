@@ -146,7 +146,7 @@ class BasketAddView(APIView):
             if product.count > int(count):
                 basket, created = Basket.objects.get_or_create(user=request.user, products=product)
                 basket.count += count
-                basket.price += product.price * count
+                basket.price += product.price
                 basket.save()
                 product.count -= count
                 product.save()
@@ -162,9 +162,7 @@ class BasketAddView(APIView):
             basket = Basket.objects.get(user=user, products=product)
             print(basket)
             if basket.count - count >= 1:
-                basket.count -= count
-                price = basket.price
-                basket.price = price - product.price * count
+                basket.count -= count   
                 product.count += count
                 product.save()
                 basket.save()
