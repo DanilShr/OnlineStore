@@ -150,10 +150,30 @@ class BasketAddView(APIView):
                 basket.save()
                 product.count -= count
                 product.save()
-                # basket.count += count
-                # basket.price += product.price * count
-                # product.count -= count
-                # basket.products.add(product)
-                # basket.save()
-                # product.save()
                 return HttpResponse("OK", status=200)
+
+    def delete(self, request):
+        form = BasketProductsSerializer(data=request.data)
+        if form.is_valid():
+            id = form.validated_data.get("id")
+            count = form.validated_data.get("count")
+            user = request.user
+            product = Product.objects.get(id=id)
+            basket = Basket.objects.get(user=user, products=product)
+            print(basket)
+            if basket.count - count >= 1:
+                basket.count -= count
+                price = basket.price
+                basket.price = price - product.price * count
+                product.count += count
+                product.save()
+                basket.save()
+                return HttpResponse("OK", status=200)
+            else:
+                Basket.delete(basket)
+                product.count += count
+                product.save()
+                return HttpResponse("OK", status=200)
+
+
+
