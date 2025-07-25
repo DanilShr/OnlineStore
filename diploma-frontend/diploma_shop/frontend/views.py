@@ -206,4 +206,18 @@ class ProfileView(APIView):
         return HttpResponse("OK", status=200)
 
 
+class AvatarView(APIView):
+    def post(self, request):
+        file = request.FILES['avatar']
+        print(file)
+        user = request.user
+        profile = Profile.objects.get(user=user)
+        avatar, get = Image.objects.get_or_create(
+            src=file,
+            alt=file.name
+        )
+        profile.avatar = avatar
+        profile.save()
+        print(avatar, get)
+        return HttpResponse("OK", status=200)
 
