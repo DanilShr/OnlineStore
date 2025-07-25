@@ -5,7 +5,8 @@ from .models import (Product,
                      Tag,
                      Review,
                      Subcategories,
-                     Category)
+                     Category,
+                     Profile)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -66,9 +67,8 @@ class ProductShortSerializer(serializers.ModelSerializer):
                   'tags', 'reviews', 'rating']
 
 
-
 class SubcategoriesSerializer(serializers.ModelSerializer):
-    image = ProductImageSerializer
+    image = ProductImageSerializer()
 
     class Meta:
         model = Subcategories
@@ -76,7 +76,7 @@ class SubcategoriesSerializer(serializers.ModelSerializer):
 
 
 class CategoriesSerializer(serializers.ModelSerializer):
-    image = ProductImageSerializer
+    image = ProductImageSerializer()
     subcategories = SubcategoriesSerializer(many=True)
 
     class Meta:
@@ -86,6 +86,29 @@ class CategoriesSerializer(serializers.ModelSerializer):
 
 class BasketProductsSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
+
     class Meta:
         model = Product
         fields = ['id', 'count']
+
+
+class ProfileSerialized(serializers.ModelSerializer):
+    avatar = ProductImageSerializer()
+
+    class Meta:
+        model = Profile
+        fields = ['fullName', 'email', 'phone', 'avatar']
+
+
+class ProfileSerializedInput(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['fullName', 'email', 'phone', 'avatar']
+
+    def create(self, validated_data):
+        image = validated_data.pop('avatar')
+        avatar, create = Image.objects.get_or_create(**image)
+        profile = Profile.objects.update_or_create(**validated_data, avatar=avatar)
+        return profile
+
+

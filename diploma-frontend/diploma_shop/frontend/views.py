@@ -17,12 +17,14 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from .models import (Product,
                      Image,
                      Basket,
-                     Category)
+                     Category, Profile)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
-                         BasketProductsSerializer)
+                         BasketProductsSerializer,
+                         ProfileSerialized,
+                         ProductImageSerializer, ProfileSerializedInput)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -162,7 +164,7 @@ class BasketAddView(APIView):
             basket = Basket.objects.get(user=user, products=product)
             print(basket)
             if basket.count - count >= 1:
-                basket.count -= count   
+                basket.count -= count
                 product.count += count
                 product.save()
                 basket.save()
@@ -172,6 +174,36 @@ class BasketAddView(APIView):
                 product.count += count
                 product.save()
                 return HttpResponse("OK", status=200)
+
+
+class ProfileView(APIView):
+
+    def get(self, request):
+        user = request.user
+        if user:
+            profile = Profile.objects.get(user=user)
+            profile_data = ProfileSerialized(profile)
+            return JsonResponse(profile_data.data, safe=False, status=200)
+
+    def post(self, request):
+        profile = request.data
+        image = profile.pop('avatar')
+        user = request.user
+        print(image)
+        avatar, create = Image.objects.get_or_create(
+            src=image.get('src'),
+            alt=image.get('alt')
+        )
+        print(avatar)
+        profile, created = Profile.objects.update_or_create(
+            user=user,  # Условие поиска (ищем профиль этого пользователя)
+            defaults={
+                'fullName': profile.get('fullName'),
+                'phone': profile.get('phone'),
+            }
+        )
+        print(profile, create)
+        return HttpResponse("OK", status=200)
 
 
 

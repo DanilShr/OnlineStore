@@ -72,7 +72,8 @@ class Basket(models.Model):
 
 class Profile(models.Model):
     user = OneToOneField(User, on_delete=models.CASCADE)
-    fullName = models.CharField(max_length=100, blank=True)
+    fullName = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(null=True, blank=True)
     phone = models.CharField(max_length=15, blank=True)
     avatar = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
 
@@ -82,7 +83,7 @@ class Order(models.Model):
     createdAt = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     deliveryType = models.BooleanField(null=True, blank=True)
     paymentType = models.CharField(max_length=50, null=True, blank=True)
-    totalCost = models.DecimalField(decimal_places=1, default=0)
+    totalCost = models.DecimalField(decimal_places=1, default=0, max_digits=8)
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
