@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.contrib.auth.views import PasswordChangeView
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
@@ -221,3 +222,16 @@ class AvatarView(APIView):
         print(avatar, get)
         return HttpResponse("OK", status=200)
 
+
+class PasswordView(APIView):
+    def post(self, request):
+        current_pass = request.data['currentPassword']
+        new_pass = request.data['newPassword']
+        user = request.user
+        print(user)
+        print(current_pass, user.password)
+        if user.check_password(current_pass):
+            user.set_password(new_pass)
+            user.save()
+            return HttpResponse("OK", status=200)
+        return HttpResponse("Wrong password", status=400)
