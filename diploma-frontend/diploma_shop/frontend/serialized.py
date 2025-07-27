@@ -6,7 +6,7 @@ from .models import (Product,
                      Review,
                      Subcategories,
                      Category,
-                     Profile, Order)
+                     Profile, Order, Payment)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -126,7 +126,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'createdAt', 'user',
-                  'deliveryType', 'totalCost', 'status', 'city', 'address', 'products']
+                  'deliveryType', 'paymentType','totalCost', 'status', 'city', 'address', 'products']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -143,3 +143,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
         return data
 
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = '__all__'

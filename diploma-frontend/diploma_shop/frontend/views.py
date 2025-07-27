@@ -19,14 +19,14 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order)
+                     Category, Profile, Order, Payment)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer)
+                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -261,14 +261,24 @@ class OrderView(APIView):
             print(products)
             order = Order.objects.filter(user=user.id, pk=pk)
             new_date = {
-                        'deliveryType': order_data['deliveryType'],
-                        'paymentType': order_data['paymentType'],
-                        'totalCost': 0,
-                        'status': order_data['status'],
-                        'city': order_data['city'],
-                        'address': order_data['address']
-                        }
+                'deliveryType': order_data['deliveryType'],
+                'paymentType': order_data['paymentType'],
+                'totalCost': 0,
+                'status': order_data['status'],
+                'city': order_data['city'],
+                'address': order_data['address']
+            }
 
             order.update(**new_date)
 
-            return HttpResponse(status=500)
+            return JsonResponse({'orderId': order.first().id}, status=200)
+
+
+class PaymentView(APIView):
+    def post(self, request, pk):
+        serializer = PaymentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return HttpResponse(status=200)
+        return HttpResponse(status=500)
+

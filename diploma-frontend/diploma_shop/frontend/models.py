@@ -81,10 +81,18 @@ class Profile(models.Model):
 class Order(models.Model):
     user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    deliveryType = models.BooleanField(null=True, blank=True)
+    deliveryType = models.CharField(max_length=50, null=True, blank=True)
     paymentType = models.CharField(max_length=50, null=True, blank=True)
     totalCost = models.DecimalField(decimal_places=1, default=0, max_digits=8)
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
     products = models.ManyToManyField(Product, blank=True)
+
+
+class Payment(models.Model):
+    number = models.IntegerField(blank=True)
+    name = models.CharField(max_length=100, blank=True)
+    month = models.IntegerField(blank=True)
+    year = models.IntegerField(blank=True)
+    code = models.IntegerField(blank=True)
