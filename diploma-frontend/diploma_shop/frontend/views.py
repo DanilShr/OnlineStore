@@ -223,54 +223,52 @@ class PasswordView(APIView):
         return HttpResponse("Wrong password", status=400)
 
 
-# class OrderView(APIView):
-#     def get(self, request):
-#         user = request.user
-#         orders = (Order.objects
-#                   .select_related('user')
-#                   .prefetch_related('products')
-#                   .filter(user=user.id))
-#         print(orders)
-#         serialized = OrderSerializer(orders, many=True)
-#
-#         return JsonResponse(serialized.data, safe=False)
+class OrderView(APIView):
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        if pk is None:
+            user = request.user
+            queryset = (Order.objects
+                        .select_related('user')
+                        .prefetch_related('products')
+                        .filter(user=user.id))
+            serializer = OrderSerializer(queryset, many=True)
+            if serializer:
+                return JsonResponse(serializer.data, safe=False)
+            print(serializer.errors)
+            return HttpResponse('NO', status=500)
+        else:
+            order = Order.objects.get(pk=pk)
+            serializer = OrderSerializer(order)
+            return JsonResponse(serializer.data, safe=False)
 
-
-class OrderView(ModelViewSet):
-    queryset = (Order.objects
-                .select_related('user')
-                .prefetch_related('products'))
-    serializer_class = OrderSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        return self.queryset.filter(user=user.id)
-
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
         user = request.user
-        products = request.data
-        total = 0
-        for product in products:
-            print(product)
-            total += float(product['price']) * float(product['count'])
-            print(total)
-        order, create = Order.objects.update_or_create(user=user.profile,
-                                                    defaults={'user': user.profile,
-                                                              'createdAt': datetime.datetime.now(),
-                                                              'totalCost': total})
-        product_ids = [item["id"] for item in products]
-        order.products.add(*product_ids)
+        if pk is None:
+            print(request.data)
+            products = request.data
+            order, create = Order.objects.update_or_create(user=user.profile,
+                                                           defaults={'user': user.profile,
+                                                                     'createdAt': datetime.datetime.now(),
+                                                                     'totalCost': 0})
+            product_ids = [item["id"] for item in products]
+            order.products.add(*product_ids)
+            return JsonResponse({'orderId': order.id}, status=200)
+        else:
+            order_data = request.data
+            products = order_data.pop('products')
+            print(products)
+            order = Order.objects.filter(user=user.id, pk=pk)
+            new_date = {
+                        'deliveryType': order_data['deliveryType'],
+                        'paymentType': order_data['paymentType'],
+                        'totalCost': 0,
+                        'status': order_data['status'],
+                        'city': order_data['city'],
+                        'address': order_data['address']
+                        }
 
-        return HttpResponse("OK", status=500)
+            order.update(**new_date)
 
-        #
-        # for data in request.data:
-        #     product = Product.objects.get(id=data['id'])
-        #     order.products.add(product)
-        #     order.save()
-        # return HttpResponse("OK", status=200)
-
-    def list(self, request, *args, **kwargs):
-        response = super().list(request, *args, **kwargs)
-        response.data = response.data.get("results", [])
-        return response
+            return HttpResponse(status=500)

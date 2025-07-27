@@ -25,7 +25,6 @@ router.register(r'products/popular', PopularProductsView, basename="popular-prod
 router.register(r'products/limited', PopularProductsView, basename="limited-products")
 router.register(r'banners', BannerView, basename='banners')
 router.register(r"categories", CategoriesView)
-router.register('orders', OrderView, basename='orders')
 
 urlpatterns = [
     path('api/', include(router.urls)),
@@ -42,8 +41,8 @@ urlpatterns = [
     path('api/profile/password', PasswordView.as_view()),
     path('api/profile/avatar', AvatarView.as_view()),
 
-    path('api/order/<int:pk>/', OrderView.as_view({'get': 'retrieve'}), name='order-detail'),
-    re_path(r'^api/orders/?$', OrderView.as_view({'get': 'retrieve'}), name='orders'),
+    re_path(r'^api/order/(?P<pk>\d+)/?$', OrderView.as_view(), name='order-detail'),
+    re_path(r'^api/orders/?$', OrderView.as_view(), name='orders'),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),
