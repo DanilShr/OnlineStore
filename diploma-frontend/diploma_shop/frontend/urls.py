@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.generic import TemplateView
 from .views import (ProductDetailsView,
                     ImageDetailsView,
@@ -12,7 +12,9 @@ from .views import (ProductDetailsView,
                     CategoriesView,
                     BasketAddView,
                     ProfileView,
-                    AvatarView, PasswordView)
+                    AvatarView,
+                    PasswordView,
+                    OrderView)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -32,10 +34,15 @@ urlpatterns = [
     path('api/sign-in', SingIn.as_view()),
     path('api/sign-out', SingOut.as_view()),
     path('api/sign-up', SingUp.as_view()),
+
     path('api/basket', BasketAddView.as_view()),
+
     path('api/profile', ProfileView.as_view()),
     path('api/profile/password', PasswordView.as_view()),
     path('api/profile/avatar', AvatarView.as_view()),
+
+    re_path(r'^api/order/(?P<pk>\d+)/?$', OrderView.as_view(), name='order-detail'),
+    re_path(r'^api/orders/?$', OrderView.as_view(), name='orders'),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),
@@ -53,6 +60,7 @@ urlpatterns = [
     path('sale/', TemplateView.as_view(template_name="frontend/sale.html")),
     path('sign-in/', TemplateView.as_view(template_name="frontend/signIn.html")),
     path('sign-up/', TemplateView.as_view(template_name="frontend/signUp.html")),
+
 ]
 
 if settings.DEBUG:

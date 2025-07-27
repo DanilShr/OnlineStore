@@ -6,7 +6,7 @@ from .models import (Product,
                      Review,
                      Subcategories,
                      Category,
-                     Profile)
+                     Profile, Order)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -100,6 +100,13 @@ class ProfileSerialized(serializers.ModelSerializer):
         fields = ['fullName', 'email', 'phone', 'avatar']
 
 
+class ProfileSerializedOrder(serializers.ModelSerializer):
+
+    class Meta:
+        model = Profile
+        fields = ['fullName', 'email', 'phone']
+
+
 class ProfileSerializedInput(serializers.ModelSerializer):
     class Meta:
         model = Profile
@@ -111,4 +118,28 @@ class ProfileSerializedInput(serializers.ModelSerializer):
         profile = Profile.objects.update_or_create(**validated_data, avatar=avatar)
         return profile
 
+
+class OrderSerializer(serializers.ModelSerializer):
+    user = ProfileSerializedOrder()
+    products = ProductShortSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'createdAt', 'user',
+                  'deliveryType', 'totalCost', 'status', 'city', 'address', 'products']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        # Достаем данные пользователя и удаляем ключ "user"
+        user_data = data.pop('user', {})  # Если user=None, вернет пустой словарь
+
+        # Добавляем поля пользователя в корень ответа
+        data.update({
+            "fullName": user_data.get("fullName"),
+            "email": user_data.get("email"),
+            "phone": user_data.get("phone"),
+        })
+
+        return data
 

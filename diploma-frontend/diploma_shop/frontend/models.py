@@ -79,7 +79,7 @@ class Profile(models.Model):
 
 
 class Order(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(Profile, on_delete=models.CASCADE)
     createdAt = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     deliveryType = models.BooleanField(null=True, blank=True)
     paymentType = models.CharField(max_length=50, null=True, blank=True)
