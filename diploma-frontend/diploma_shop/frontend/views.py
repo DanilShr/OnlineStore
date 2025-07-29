@@ -7,8 +7,10 @@ from django.contrib.auth.views import PasswordChangeView
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
+from django_filters.rest_framework import DjangoFilterBackend
 from requests import Response
 from rest_framework import status, request
+from rest_framework.filters import SearchFilter
 from rest_framework.mixins import CreateModelMixin
 from rest_framework.parsers import JSONParser
 from rest_framework.permissions import IsAuthenticated
@@ -19,14 +21,14 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order)
+                     Category, Profile, Order, Payment)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer)
+                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -261,14 +263,43 @@ class OrderView(APIView):
             print(products)
             order = Order.objects.filter(user=user.id, pk=pk)
             new_date = {
-                        'deliveryType': order_data['deliveryType'],
-                        'paymentType': order_data['paymentType'],
-                        'totalCost': 0,
-                        'status': order_data['status'],
-                        'city': order_data['city'],
-                        'address': order_data['address']
-                        }
+                'deliveryType': order_data['deliveryType'],
+                'paymentType': order_data['paymentType'],
+                'totalCost': 0,
+                'status': order_data['status'],
+                'city': order_data['city'],
+                'address': order_data['address']
+            }
 
             order.update(**new_date)
 
-            return HttpResponse(status=500)
+            return JsonResponse({'orderId': order.first().id}, status=200)
+
+
+class PaymentView(APIView):
+    def post(self, request, pk):
+        serializer = PaymentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return HttpResponse(status=200)
+        return HttpResponse(status=500)
+
+
+class CatalogView(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductShortSerializer
+    filter_backends = [
+        SearchFilter,
+        DjangoFilterBackend,
+    ]
+    ordering_fields = ('price',)
+    search_fields = ('title',)
+    filterset_fields = ('price', 'category')
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(self, request, *args, **kwargs)
+        response.data = response.data.get("results", [])
+        response.data = {'items': response.data}
+        return response
+
+
