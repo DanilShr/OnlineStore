@@ -288,18 +288,19 @@ class PaymentView(APIView):
 class CatalogView(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductShortSerializer
-    filter_backends = [
-        SearchFilter,
-        DjangoFilterBackend,
-    ]
-    ordering_fields = ('price',)
-    search_fields = ('title',)
-    filterset_fields = ('price', 'category')
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['title']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('filter[name]')
+        print(name, queryset)
+        if name:
+            queryset = queryset.filter(title__contains=name)
+        return queryset
 
     def list(self, request, *args, **kwargs):
         response = super().list(self, request, *args, **kwargs)
         response.data = response.data.get("results", [])
         response.data = {'items': response.data}
         return response
-
-
