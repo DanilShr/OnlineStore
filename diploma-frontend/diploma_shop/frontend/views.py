@@ -294,9 +294,15 @@ class CatalogView(ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         name = self.request.query_params.get('filter[name]')
-        print(name, queryset)
-        if name:
-            queryset = queryset.filter(title__contains=name)
+        minPrice = self.request.query_params.get('filter[minPrice]')
+        maxPrice = self.request.query_params.get('filter[maxPrice]')
+        freeDelivery = self.request.query_params.get('filter[freeDelivery]')
+        print(name, self.request.query_params)
+        f = {'title__contains': name,
+             'price__gte': minPrice,
+             'price__lte': maxPrice,
+             'freeDelivery': (True if freeDelivery == 'true'else False)}
+        queryset = queryset.filter(**f)
         return queryset
 
     def list(self, request, *args, **kwargs):
