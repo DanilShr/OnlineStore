@@ -56,6 +56,7 @@ class Product(models.Model):
     count = models.IntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     freeDelivery = models.BooleanField(default=True, blank=True, null=True)
+    Available = models.BooleanField(default=True, blank=True, null=True)
     images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE, null=True)
