@@ -300,8 +300,6 @@ class CatalogView(ModelViewSet):
         sort = self.request.query_params.get('sort')
         sortType = self.request.query_params.get('sortType')
         sort_ord = (sort if sortType == 'dec' else f'-{sort}')
-        print(sort_ord)
-        print(name, self.request.query_params)
         f = {'title__contains': name,
              'price__gte': minPrice,
              'price__lte': maxPrice,
