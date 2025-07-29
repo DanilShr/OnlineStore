@@ -297,12 +297,16 @@ class CatalogView(ModelViewSet):
         minPrice = self.request.query_params.get('filter[minPrice]')
         maxPrice = self.request.query_params.get('filter[maxPrice]')
         freeDelivery = self.request.query_params.get('filter[freeDelivery]')
+        sort = self.request.query_params.get('sort')
+        sortType = self.request.query_params.get('sortType')
+        sort_ord = (sort if sortType == 'dec' else f'-{sort}')
+        print(sort_ord)
         print(name, self.request.query_params)
         f = {'title__contains': name,
              'price__gte': minPrice,
              'price__lte': maxPrice,
              'freeDelivery': (True if freeDelivery == 'true'else False)}
-        queryset = queryset.filter(**f)
+        queryset = queryset.filter(**f).order_by(sort_ord)
         return queryset
 
     def list(self, request, *args, **kwargs):
