@@ -46,12 +46,24 @@ class ImageDetailsView(ModelViewSet):
 class PopularProductsView(ModelViewSet):
     queryset = ((Product.objects
                  .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images').filter(rating__gte=3))[:5]
+                .prefetch_related('tags', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response.data = response.data.get("results", [])  # Оставляем только results
+        response.data = response.data.get("results", [])
+        return response
+
+
+class LimitedProductsView(ModelViewSet):
+    queryset = ((Product.objects
+                 .select_related('category', 'reviews', 'specifications'))
+                .prefetch_related('tags', 'images').filter(limited=True))
+    serializer_class = ProductShortSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results", [])
         return response
 
 
@@ -99,7 +111,7 @@ class SingUp(APIView):
 class BannerView(ModelViewSet):
     queryset = ((Product.objects
                  .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images'))
+                .prefetch_related('tags', 'images')[:3])
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -308,7 +320,7 @@ class CatalogView(ModelViewSet):
              'price__lte': maxPrice,
              'freeDelivery': (True if freeDelivery == 'true'else False),
              'Available': (True if available == 'true'else False),
-             'category': int(category)}
+             'category': (int(category) if category else None)}
         queryset = queryset.filter(**f).order_by(sort_ord)
         return queryset
 
