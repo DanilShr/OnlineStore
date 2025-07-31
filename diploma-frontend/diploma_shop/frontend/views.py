@@ -241,6 +241,7 @@ class PasswordView(APIView):
 class OrderView(APIView):
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
+
         if pk is None:
             user = request.user
             queryset = (Order.objects

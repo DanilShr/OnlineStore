@@ -7,3 +7,4 @@ from .models import Product, Profile, Order, Category
 @admin.register(Product, Profile, Order, Category)
 class ProductAdmin(admin.ModelAdmin):
     pass
+pass
