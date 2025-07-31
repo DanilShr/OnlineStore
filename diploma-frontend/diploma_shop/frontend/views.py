@@ -4,7 +4,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordChangeView
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -145,7 +145,6 @@ class BasketAddView(APIView):
             product.count = count
             product.price = price
         serialized = ProductShortSerializer(products, many=True)
-        data = serialized.data
         return JsonResponse(serialized.data, safe=False, status=200)
 
     def post(self, request, *args, **kwargs):
@@ -239,6 +238,7 @@ class PasswordView(APIView):
 
 
 class OrderView(APIView):
+
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
 
@@ -264,23 +264,25 @@ class OrderView(APIView):
         if pk is None:
             print(request.data)
             products = request.data
-            order, create = Order.objects.update_or_create(user=user.profile,
-                                                           defaults={'user': user.profile,
-                                                                     'createdAt': datetime.datetime.now(),
-                                                                     'totalCost': 0})
             product_ids = [item["id"] for item in products]
+            order = Order.objects.create(user=user.profile,
+                                         createdAt=datetime.datetime.now(),
+                                         paymentType='not selected',
+                                         deliveryType='not selected',
+                                         status='being issued',
+                                         totalCost=0)
             order.products.add(*product_ids)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
             order_data = request.data
-            products = order_data.pop('products')
             order = Order.objects.filter(pk=pk)
-            print(order)
+
+            print(order_data)
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': 0,
-                'status': order_data['status'],
+                'totalCost': self.price,
+                'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
             }
@@ -294,6 +296,9 @@ class PaymentView(APIView):
     def post(self, request, pk):
         serializer = PaymentSerializer(data=request.data)
         if serializer.is_valid():
+            order = Order.objects.get(pk=pk)
+            order.status = 'in transit'
+            order.save()
             serializer.save()
             return HttpResponse(status=200)
         return HttpResponse(status=500)
