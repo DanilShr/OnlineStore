@@ -4,7 +4,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordChangeView
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -238,6 +238,7 @@ class PasswordView(APIView):
 
 
 class OrderView(APIView):
+
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
 
@@ -263,21 +264,24 @@ class OrderView(APIView):
         if pk is None:
             print(request.data)
             products = request.data
+            product_ids = [item["id"] for item in products]
             order = Order.objects.create(user=user.profile,
                                          createdAt=datetime.datetime.now(),
+                                         paymentType='not selected',
+                                         deliveryType='not selected',
                                          status='being issued',
                                          totalCost=0)
-            product_ids = [item["id"] for item in products]
             order.products.add(*product_ids)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
             order_data = request.data
             order = Order.objects.filter(pk=pk)
+
             print(order_data)
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': 0,
+                'totalCost': self.price,
                 'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
