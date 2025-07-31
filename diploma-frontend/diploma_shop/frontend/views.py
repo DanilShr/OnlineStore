@@ -21,14 +21,15 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Payment)
+                     Category, Profile, Order, Payment, Review)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer)
+                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer,
+                         ReviewFullSerialized)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -272,8 +273,8 @@ class OrderView(APIView):
         else:
             order_data = request.data
             products = order_data.pop('products')
-            print(products)
-            order = Order.objects.filter(user=user.id, pk=pk)
+            order = Order.objects.filter(pk=pk)
+            print(order)
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
@@ -318,8 +319,8 @@ class CatalogView(ModelViewSet):
         f = {'title__contains': name,
              'price__gte': minPrice,
              'price__lte': maxPrice,
-             'freeDelivery': (True if freeDelivery == 'true'else False),
-             'Available': (True if available == 'true'else False),
+             'freeDelivery': (True if freeDelivery == 'true' else False),
+             'Available': (True if available == 'true' else False),
              'category': (int(category) if category else None)}
         queryset = queryset.filter(**f).order_by(sort_ord)
         return queryset
@@ -329,3 +330,8 @@ class CatalogView(ModelViewSet):
         response.data = response.data.get("results", [])
         response.data = {'items': response.data}
         return response
+
+
+class ReviewView(ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewFullSerialized

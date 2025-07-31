@@ -17,7 +17,8 @@ from .views import (ProductDetailsView,
                     OrderView,
                     PaymentView,
                     CatalogView,
-                    LimitedProductsView)
+                    LimitedProductsView,
+                    ReviewView)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -29,6 +30,7 @@ router.register(r'products/limited', LimitedProductsView, basename="limited-prod
 router.register(r'banners', BannerView, basename='banners')
 router.register(r"categories", CategoriesView)
 router.register(r'catalog', CatalogView, basename="catalog")
+router.register(r'review', ReviewView, basename="review")
 
 urlpatterns = [
     path('api/', include(router.urls)),

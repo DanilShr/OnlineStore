@@ -26,6 +26,12 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['rate']
 
+
+class ReviewFullSerialized(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = '__all__'
+
     def to_representation(self, instance):
         return instance.rate
 
@@ -101,7 +107,6 @@ class ProfileSerialized(serializers.ModelSerializer):
 
 
 class ProfileSerializedOrder(serializers.ModelSerializer):
-
     class Meta:
         model = Profile
         fields = ['fullName', 'email', 'phone']
@@ -126,7 +131,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'createdAt', 'user',
-                  'deliveryType', 'paymentType','totalCost', 'status', 'city', 'address', 'products']
+                  'deliveryType', 'paymentType', 'totalCost', 'status', 'city', 'address', 'products']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
