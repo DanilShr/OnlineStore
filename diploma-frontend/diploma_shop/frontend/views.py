@@ -145,7 +145,6 @@ class BasketAddView(APIView):
             product.count = count
             product.price = price
         serialized = ProductShortSerializer(products, many=True)
-        data = serialized.data
         return JsonResponse(serialized.data, safe=False, status=200)
 
     def post(self, request, *args, **kwargs):
@@ -264,23 +263,22 @@ class OrderView(APIView):
         if pk is None:
             print(request.data)
             products = request.data
-            order, create = Order.objects.update_or_create(user=user.profile,
-                                                           defaults={'user': user.profile,
-                                                                     'createdAt': datetime.datetime.now(),
-                                                                     'totalCost': 0})
+            order = Order.objects.create(user=user.profile,
+                                         createdAt=datetime.datetime.now(),
+                                         status='being issued',
+                                         totalCost=0)
             product_ids = [item["id"] for item in products]
             order.products.add(*product_ids)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
             order_data = request.data
-            products = order_data.pop('products')
             order = Order.objects.filter(pk=pk)
-            print(order)
+            print(order_data)
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
                 'totalCost': 0,
-                'status': order_data['status'],
+                'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
             }
@@ -294,6 +292,9 @@ class PaymentView(APIView):
     def post(self, request, pk):
         serializer = PaymentSerializer(data=request.data)
         if serializer.is_valid():
+            order = Order.objects.get(pk=pk)
+            order.status = 'in transit'
+            order.save()
             serializer.save()
             return HttpResponse(status=200)
         return HttpResponse(status=500)
