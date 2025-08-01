@@ -4,7 +4,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.views import PasswordChangeView
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Avg
 from django.http import HttpResponse, HttpResponseServerError, JsonResponse
 from django.views.generic import DetailView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -34,8 +34,8 @@ from .serialized import (ProductSerializer,
 
 class ProductDetailsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images'))
+                 .select_related('category',  'specifications'))
+                .prefetch_related('tags', 'reviews', 'images'))
     serializer_class = ProductSerializer
 
 
@@ -46,8 +46,8 @@ class ImageDetailsView(ModelViewSet):
 
 class PopularProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
+                 .select_related('category',  'specifications'))
+                .prefetch_related('tags','reviews', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -58,8 +58,8 @@ class PopularProductsView(ModelViewSet):
 
 class LimitedProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images').filter(limited=True))
+                 .select_related('category', 'specifications'))
+                .prefetch_related('tags', 'reviews' ,'images').filter(limited=True))
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -111,8 +111,8 @@ class SingUp(APIView):
 
 class BannerView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images')[:3])
+                 .select_related('category', 'specifications'))
+                .prefetch_related('tags', 'images', 'reviews')[:3])
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -342,6 +342,24 @@ class CatalogView(ModelViewSet):
         return response
 
 
-class ReviewView(ModelViewSet):
-    queryset = Review.objects.all()
-    serializer_class = ReviewFullSerialized
+class ReviewView(APIView):
+    def post(self, request, **kwargs):
+        pk = kwargs['pk']
+        data = request.data
+        review = Review.objects.create(**data)
+        print(review)
+        product = Product.objects.get(id=pk)
+        product.reviews.add(review)
+        print(data)
+        self.update_rate(product)
+        return HttpResponse(status=200)
+
+    def update_rate(self, product):
+        product.rating = (Review.objects
+                          .filter(product=product.pk)
+                          .aggregate(rate=Avg('rate'))['rate'])
+        product.save()
+
+class TagsView(APIView):
+    def get(self, request, **kwargs):
+        pk = kwargs['pk']
