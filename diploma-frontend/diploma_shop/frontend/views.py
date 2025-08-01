@@ -21,7 +21,7 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Payment, Review)
+                     Category, Profile, Order, Payment, Review, Tag)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
@@ -29,12 +29,12 @@ from .serialized import (ProductSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
                          ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer,
-                         ReviewFullSerialized)
+                         ReviewFullSerialized, TagsSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category',  'specifications'))
+                 .select_related('category', 'specifications'))
                 .prefetch_related('tags', 'reviews', 'images'))
     serializer_class = ProductSerializer
 
@@ -46,8 +46,8 @@ class ImageDetailsView(ModelViewSet):
 
 class PopularProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category',  'specifications'))
-                .prefetch_related('tags','reviews', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
+                 .select_related('category', 'specifications'))
+                .prefetch_related('tags', 'reviews', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -59,7 +59,7 @@ class PopularProductsView(ModelViewSet):
 class LimitedProductsView(ModelViewSet):
     queryset = ((Product.objects
                  .select_related('category', 'specifications'))
-                .prefetch_related('tags', 'reviews' ,'images').filter(limited=True))
+                .prefetch_related('tags', 'reviews', 'images').filter(limited=True))
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -356,10 +356,14 @@ class ReviewView(APIView):
 
     def update_rate(self, product):
         product.rating = (Review.objects
-                          .filter(product=product.pk)
-                          .aggregate(rate=Avg('rate'))['rate'])
+        .filter(product=product.pk)
+        .aggregate(rate=Avg('rate'))['rate'])
         product.save()
 
+
 class TagsView(APIView):
-    def get(self, request, **kwargs):
-        pk = kwargs['pk']
+    def get(self, request):
+        category = self.request.query_params.get('category')
+        tags = (Tag.objects.filter(category=int(category)))
+        serialized = TagsSerializer(tags, many=True)
+        return JsonResponse(serialized.data, safe=False)

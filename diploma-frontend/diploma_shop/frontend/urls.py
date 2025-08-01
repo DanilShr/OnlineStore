@@ -18,7 +18,8 @@ from .views import (ProductDetailsView,
                     PaymentView,
                     CatalogView,
                     LimitedProductsView,
-                    ReviewView)
+                    ReviewView,
+                    TagsView)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -52,6 +53,8 @@ urlpatterns = [
     path('api/payment/<int:pk>', PaymentView.as_view(), name='payment'),
 
     path('api/product/<int:pk>/reviews', ReviewView.as_view(), name='review'),
+
+    path('api/tags', TagsView.as_view()),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),

@@ -22,7 +22,6 @@ class Tag(models.Model):
 
 
 def user_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
     return "user_{0}/{1}".format(instance.id, filename)
 
 
@@ -40,6 +39,7 @@ class Category(models.Model):
     title = models.CharField(max_length=50)
     image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
     subcategories = models.ManyToManyField(Subcategories, blank=True)
+    tags = models.ManyToManyField(Tag, blank=True)
 
 
 class Specification(models.Model):
