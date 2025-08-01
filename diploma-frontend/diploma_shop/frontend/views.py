@@ -279,12 +279,12 @@ class OrderView(APIView):
             user = request.user
             order_data = request.data
             order = Order.objects.filter(pk=pk)
-            basket = Basket.objects.get(user=user.id)
-            print(basket)
+            basket = Basket.objects.filter(user=user.id).all()
+            total_sum = basket.aggregate(total=Sum('total_price'))['total']
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': 0,
+                'totalCost': total_sum,
                 'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
@@ -292,7 +292,7 @@ class OrderView(APIView):
 
             order.update(**new_date)
 
-            return JsonResponse({'orderId': order.first().id}, status=500)
+            return JsonResponse({'orderId': order.first().id}, status=200)
 
 
 class PaymentView(APIView):
