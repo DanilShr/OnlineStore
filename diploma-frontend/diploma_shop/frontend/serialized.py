@@ -49,6 +49,7 @@ class TagsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     tags = TagsShortSerializer(many=True)

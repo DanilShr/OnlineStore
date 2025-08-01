@@ -367,3 +367,4 @@ class TagsView(APIView):
         tags = (Tag.objects.filter(category=int(category)))
         serialized = TagsSerializer(tags, many=True)
         return JsonResponse(serialized.data, safe=False)
+
