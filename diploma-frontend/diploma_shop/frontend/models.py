@@ -10,11 +10,11 @@ from django.forms import EmailField
 
 
 class Review(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    author = models.CharField(max_length=50, blank=True)
     email = models.CharField(max_length=50, blank=True)
     text = models.TextField(blank=True, max_length=200)
     rate = models.IntegerField(default=0)
-    date = models.DateTimeField()
+    date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
 
 class Tag(models.Model):
@@ -60,7 +60,7 @@ class Product(models.Model):
     Available = models.BooleanField(default=True, blank=True, null=True)
     images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
-    reviews = models.ForeignKey(Review, blank=True, on_delete=models.CASCADE, null=True)
+    reviews = models.ManyToManyField(Review, blank=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
     rating = models.FloatField(default=0)
 

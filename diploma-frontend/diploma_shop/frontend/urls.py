@@ -30,7 +30,6 @@ router.register(r'products/limited', LimitedProductsView, basename="limited-prod
 router.register(r'banners', BannerView, basename='banners')
 router.register(r"categories", CategoriesView)
 router.register(r'catalog', CatalogView, basename="catalog")
-router.register(r'review', ReviewView, basename="review")
 
 urlpatterns = [
     path('api/', include(router.urls)),
@@ -51,6 +50,8 @@ urlpatterns = [
     re_path(r'^api/orders/?$', OrderView.as_view(), name='orders'),
 
     path('api/payment/<int:pk>', PaymentView.as_view(), name='payment'),
+
+    path('api/product/<int:pk>/reviews', ReviewView.as_view(), name='review'),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),

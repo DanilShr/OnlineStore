@@ -32,8 +32,6 @@ class ReviewFullSerialized(serializers.ModelSerializer):
         model = Review
         fields = '__all__'
 
-    def to_representation(self, instance):
-        return instance.rate
 
 
 class TagsShortSerializer(serializers.ModelSerializer):
@@ -54,6 +52,7 @@ class TagsSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     tags = TagsShortSerializer(many=True)
+    reviews = ReviewFullSerialized(many=True)
 
     class Meta:
         model = Product
@@ -65,6 +64,7 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductShortSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True)
     tags = TagsSerializer(many=True)
+
 
     class Meta:
         model = Product
