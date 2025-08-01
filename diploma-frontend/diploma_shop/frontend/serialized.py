@@ -1,3 +1,4 @@
+from django.utils.timezone import localtime
 from rest_framework import serializers
 from .models import (Product,
                      Image,
@@ -33,7 +34,6 @@ class ReviewFullSerialized(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
 class TagsShortSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
@@ -47,7 +47,6 @@ class TagsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ['id', 'name']
-
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -66,12 +65,21 @@ class ProductShortSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True)
     tags = TagsSerializer(many=True)
 
-
     class Meta:
         model = Product
         fields = ['id', 'category', 'price', 'count', 'date', 'title',
                   'description', 'freeDelivery', 'images',
                   'tags', 'reviews', 'rating']
+
+
+class SaleProductSerializer(serializers.ModelSerializer):
+    images = ImageSerializer(many=True)
+    dateFrom = serializers.DateField(format='%m-%d')
+    dateTo = serializers.DateField(format='%m-%d')
+    class Meta:
+        model = Product
+        fields = ['id', 'price', 'salePrice',
+                  'dateFrom', 'dateTo', 'title', 'images']
 
 
 class SubcategoriesSerializer(serializers.ModelSerializer):

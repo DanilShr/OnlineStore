@@ -29,7 +29,7 @@ from .serialized import (ProductSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
                          ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer,
-                         ReviewFullSerialized, TagsSerializer)
+                         ReviewFullSerialized, TagsSerializer, SaleProductSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -324,6 +324,7 @@ class CatalogView(ModelViewSet):
         category = self.request.query_params.get('category')
         sort = self.request.query_params.get('sort')
         sortType = self.request.query_params.get('sortType')
+        tags = self.request.query_params.get('tags')
 
         sort_ord = (sort if sortType == 'dec' else f'-{sort}')
         f = {'title__contains': name,
@@ -364,7 +365,23 @@ class ReviewView(APIView):
 class TagsView(APIView):
     def get(self, request):
         category = self.request.query_params.get('category')
-        tags = (Tag.objects.filter(category=int(category)))
-        serialized = TagsSerializer(tags, many=True)
-        return JsonResponse(serialized.data, safe=False)
+        if category is not None:
+            tags = (Tag.objects.filter(category=int(category)))
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
+        else:
+            tags = Tag.objects.all()
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
+
+
+class SaleView(APIView):
+    def get(self, request):
+        queryset = Product.objects.filter(salePrice__gte=1)
+        print(queryset.first().salePrice)
+        serialized = SaleProductSerializer(queryset, many=True)
+        print(serialized.data)
+        data = {'items': serialized.data}
+        return JsonResponse(data, safe=False)
+
 

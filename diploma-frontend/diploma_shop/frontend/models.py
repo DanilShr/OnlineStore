@@ -64,7 +64,9 @@ class Product(models.Model):
     reviews = models.ManyToManyField(Review, blank=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
     rating = models.FloatField(default=0)
-
+    salePrice = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    dateFrom = models.DateField(null=True, blank=True)
+    dateTo = models.DateField(null=True, blank=True)
 
 class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
