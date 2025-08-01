@@ -70,6 +70,7 @@ class Basket(models.Model):
     products = models.ForeignKey(Product, blank=True, on_delete=models.CASCADE, default='')
     count = models.IntegerField(default=0)
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
+    total_price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
 
 
 class Profile(models.Model):

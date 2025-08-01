@@ -157,11 +157,13 @@ class BasketAddView(APIView):
             if product.count > int(count):
                 basket, created = Basket.objects.get_or_create(user=request.user, products=product)
                 basket.count += count
-                basket.price += product.price
+                basket.price = product.price
+                basket.total_price = product.price * basket.count
                 basket.save()
                 product.count -= count
                 product.save()
                 return HttpResponse("OK", status=200)
+            return HttpResponse("Error", status=500)
 
     def delete(self, request):
         form = BasketProductsSerializer(data=request.data)
@@ -274,14 +276,15 @@ class OrderView(APIView):
             order.products.add(*product_ids)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
+            user = request.user
             order_data = request.data
             order = Order.objects.filter(pk=pk)
-
-            print(order_data)
+            basket = Basket.objects.get(user=user.id)
+            print(basket)
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': self.price,
+                'totalCost': 0,
                 'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
@@ -289,7 +292,7 @@ class OrderView(APIView):
 
             order.update(**new_date)
 
-            return JsonResponse({'orderId': order.first().id}, status=200)
+            return JsonResponse({'orderId': order.first().id}, status=500)
 
 
 class PaymentView(APIView):
