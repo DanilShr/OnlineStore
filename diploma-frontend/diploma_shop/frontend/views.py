@@ -281,6 +281,7 @@ class OrderView(APIView):
             order = Order.objects.filter(pk=pk)
             basket = Basket.objects.filter(user=user.id).all()
             total_sum = basket.aggregate(total=Sum('total_price'))['total']
+            basket.delete()
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
