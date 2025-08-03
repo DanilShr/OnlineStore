@@ -14,6 +14,9 @@ class ProductAdmin(admin.ModelAdmin):
     list_display_links = ('title',)
 
 
+class ProductInline(admin.TabularInline):
+    model = Order.products.through
+
 
 
 @admin.register(Category)
@@ -24,6 +27,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
+    inlines = [ProductInline]
     list_display = ('id', 'user', 'deliveryType', 'paymentType', 'totalCost', 'totalCost', 'address')
     list_editable = ('user', 'deliveryType', 'paymentType', 'totalCost', 'totalCost',)
 
