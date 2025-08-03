@@ -22,7 +22,6 @@ class Tag(models.Model):
 
 
 def user_directory_path(instance, filename):
-
     return "user_{0}/{1}".format(instance.id, filename)
 
 
@@ -63,10 +62,11 @@ class Product(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ManyToManyField(Review, blank=True)
     specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
-    rating = models.FloatField(default=0)
+    rating = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     salePrice = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     dateFrom = models.DateField(null=True, blank=True)
     dateTo = models.DateField(null=True, blank=True)
+
 
 class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
