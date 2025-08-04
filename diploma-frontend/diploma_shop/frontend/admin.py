@@ -14,8 +14,13 @@ def available_product(modeladmin, request, queryset):
     queryset.update(Available=True)
 
 
+class ImageInline(admin.TabularInline):
+    model = Product.images.through
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    inlines = [ImageInline]
     actions = [delete_product, available_product]
     link_select_related = ('category',)
     search_fields = ('title',)
@@ -24,6 +29,13 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ('price', 'count', 'freeDelivery', 'limited', 'salePrice')
     list_display_links = ('title',)
     ordering = ('id', 'title',)
+
+    fieldsets = [
+        ('Advanced', {'fields': ('title', 'price', 'category', 'rating')}),
+        ('Extra info', {'fields': ('freeDelivery', 'limited', 'count', 'specifications',
+                                   'Available', 'reviews', 'tags')}),
+        ('Sale info', {'fields': ('salePrice', 'dateFrom', 'dateTo')})
+    ]
 
     def categories(self, obj: Product):
         return obj.category.title or None
@@ -35,9 +47,12 @@ class ProductInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title')
-    list_display_links = ('title',)
+    list_display = ('id', 'title', 'image_info')
+    list_display_links = ('title', 'image_info')
     ordering = ('id', 'title',)
+
+    def image_info(self, obj: Category):
+        return obj.image.src
 
 
 @admin.register(Order)
