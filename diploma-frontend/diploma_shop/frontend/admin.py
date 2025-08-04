@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import Product, Profile, Order, Category, Review, Image
 
@@ -25,7 +26,7 @@ class ProductAdmin(admin.ModelAdmin):
     link_select_related = ('category',)
     search_fields = ('title',)
     list_display = ('id', 'title', 'price', 'categories', 'rating', 'freeDelivery', 'limited',
-                    'count', 'salePrice', 'Available')
+                    'count', 'salePrice', 'Available', 'edit_link')
     list_editable = ('price', 'count', 'freeDelivery', 'limited', 'salePrice')
     list_display_links = ('title',)
     ordering = ('id', 'title',)
@@ -36,6 +37,13 @@ class ProductAdmin(admin.ModelAdmin):
                                    'Available', 'reviews', 'tags')}),
         ('Sale info', {'fields': ('salePrice', 'dateFrom', 'dateTo')})
     ]
+
+    def edit_link(self, obj):
+        return format_html('<a href="/admin/frontend/product/{}/change/">Изменить</a>', obj.id)
+
+    edit_link.short_description = 'Действие'
+
+
 
     def categories(self, obj: Product):
         return obj.category.title or None

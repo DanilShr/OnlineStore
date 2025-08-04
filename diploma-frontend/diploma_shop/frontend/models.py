@@ -20,6 +20,9 @@ class Review(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=10)
 
+    def __str__(self):
+        return self.name
+
 
 def user_directory_path(instance, filename):
     return "user_{0}/{1}".format(instance.id, filename)
@@ -29,10 +32,16 @@ class Image(models.Model):
     src = models.ImageField(upload_to='images/')
     alt = models.CharField(max_length=50)
 
+    def __str__(self):
+        return self.src.name
+
 
 class Subcategories(models.Model):
     title = models.CharField(max_length=50)
     image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.title
 
 
 class Category(models.Model):
@@ -40,6 +49,9 @@ class Category(models.Model):
     image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
     subcategories = models.ManyToManyField(Subcategories, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
+
+    def __str__(self):
+        return self.title
 
 
 class Specification(models.Model):
@@ -66,6 +78,9 @@ class Product(models.Model):
     salePrice = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     dateFrom = models.DateField(null=True, blank=True)
     dateTo = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return self.title
 
 
 class Basket(models.Model):
