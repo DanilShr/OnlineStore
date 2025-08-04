@@ -3,33 +3,27 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.contrib.auth.views import PasswordChangeView
 from django.db.models import Q, Sum, Avg
-from django.http import HttpResponse, HttpResponseServerError, JsonResponse
-from django.views.generic import DetailView
+from django.http import HttpResponse, JsonResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from requests import Response
-from rest_framework import status, request
-from rest_framework.filters import SearchFilter
-from rest_framework.mixins import CreateModelMixin
-from rest_framework.parsers import JSONParser
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet
 
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Payment, Review, Tag)
+                     Category, Profile, Order, Review, Tag)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer,
-                         ReviewFullSerialized, TagsSerializer, SaleProductSerializer)
+                         OrderSerializer, PaymentSerializer,
+                         TagsSerializer, SaleProductSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -134,7 +128,7 @@ class CategoriesView(ModelViewSet):
 
 
 class BasketAddView(APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         user = request.user
         baskets = Basket.objects.select_related('products').only('products').filter(user=user)
         products = [basket.products for basket in baskets]
@@ -147,7 +141,7 @@ class BasketAddView(APIView):
         serialized = ProductShortSerializer(products, many=True)
         return JsonResponse(serialized.data, safe=False, status=200)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         print(request.data)
         form = BasketProductsSerializer(data=request.data)
         if form.is_valid():
