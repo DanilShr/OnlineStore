@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.urls import reverse
 
 from .models import Product, Profile, Order, Category, Review, Image
 
@@ -19,6 +20,11 @@ class ImageInline(admin.TabularInline):
     model = Product.images.through
 
 
+def delete_ob(obj):
+    obj.Available = False
+    obj.save()
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ImageInline]
@@ -26,7 +32,7 @@ class ProductAdmin(admin.ModelAdmin):
     link_select_related = ('category',)
     search_fields = ('title',)
     list_display = ('id', 'title', 'price', 'categories', 'rating', 'freeDelivery', 'limited',
-                    'count', 'salePrice', 'Available', 'edit_link')
+                    'count', 'salePrice', 'Available', 'edit_link', 'delete_link')
     list_editable = ('price', 'count', 'freeDelivery', 'limited', 'salePrice')
     list_display_links = ('title',)
     ordering = ('id', 'title',)
@@ -41,9 +47,12 @@ class ProductAdmin(admin.ModelAdmin):
     def edit_link(self, obj):
         return format_html('<a href="/admin/frontend/product/{}/change/">Изменить</a>', obj.id)
 
+    def delete_link(self, obj):
+        return  format_html('<a href="{}" onclick="return confirm'
+                            '(\'Вы уверены, что хотите удалить этот товар?\' )">Удалить</a>', reverse('delete', args=[obj.pk]))
+
     edit_link.short_description = 'Действие'
-
-
+    delete_link.short_description = 'Удалить'
 
     def categories(self, obj: Product):
         return obj.category.title or None

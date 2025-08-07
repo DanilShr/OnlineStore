@@ -11,6 +11,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
+from django.http import HttpResponseRedirect
+
+from django.contrib import messages
 
 from .models import (Product,
                      Image,
@@ -379,3 +382,9 @@ class SaleView(APIView):
         return JsonResponse(data, safe=False)
 
 
+def delete_product(request, pk):
+    product = Product.objects.get(id=pk)
+    product.Available = False
+    product.save()
+    messages.success(request, f'Удален товар #{pk}')
+    return HttpResponseRedirect('/admin/frontend/product/')
