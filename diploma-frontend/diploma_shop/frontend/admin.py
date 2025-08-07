@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.urls import reverse
 
@@ -39,17 +40,20 @@ class ProductAdmin(admin.ModelAdmin):
 
     fieldsets = [
         ('Advanced', {'fields': ('title', 'price', 'category', 'rating')}),
-        ('Extra info', {'fields': ('freeDelivery', 'limited', 'count', 'specifications',
+        ('Extra info', {'classes': ('collapse',),
+                        'fields': ('freeDelivery', 'limited', 'count', 'specifications',
                                    'Available', 'reviews', 'tags')}),
-        ('Sale info', {'fields': ('salePrice', 'dateFrom', 'dateTo')})
+        ('Sale info', {'classes': ('collapse',),
+                       'fields': ('salePrice', 'dateFrom', 'dateTo')})
     ]
 
     def edit_link(self, obj):
         return format_html('<a href="/admin/frontend/product/{}/change/">Изменить</a>', obj.id)
 
     def delete_link(self, obj):
-        return  format_html('<a href="{}" onclick="return confirm'
-                            '(\'Вы уверены, что хотите удалить этот товар?\' )">Удалить</a>', reverse('delete', args=[obj.pk]))
+        return format_html('<a href="{}" onclick="return confirm'
+                           '(\'Вы уверены, что хотите удалить этот товар?\' )">Удалить</a>',
+                           reverse('delete', args=[obj.pk]))
 
     edit_link.short_description = 'Действие'
     delete_link.short_description = 'Удалить'
@@ -101,3 +105,18 @@ class ProfileAdmin(admin.ModelAdmin):
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
     list_display = ('id', 'src')
+
+
+class CustomUserAdmin(admin.ModelAdmin):
+    list_display = ('id', 'username', 'is_staff', 'is_active')
+
+    def delete_queryset(self, request, queryset):
+        queryset.update(is_active=False)
+
+    def delete_model(self, request, obj):
+        obj.is_active = False
+        obj.save()
+
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
