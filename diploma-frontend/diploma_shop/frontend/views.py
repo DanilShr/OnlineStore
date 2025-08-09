@@ -3,33 +3,31 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.contrib.auth.views import PasswordChangeView
+from django.db import transaction
 from django.db.models import Q, Sum, Avg
-from django.http import HttpResponse, HttpResponseServerError, JsonResponse
-from django.views.generic import DetailView
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django_filters.rest_framework import DjangoFilterBackend
-from requests import Response
-from rest_framework import status, request
-from rest_framework.filters import SearchFilter
-from rest_framework.mixins import CreateModelMixin
-from rest_framework.parsers import JSONParser
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet
+from django.http import HttpResponseRedirect
+
+from django.contrib import messages
 
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Payment, Review, Tag)
+                     Category, Profile, Order, Review, Tag)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer,
-                         ReviewFullSerialized, TagsSerializer)
+                         OrderSerializer, PaymentSerializer,
+                         TagsSerializer, SaleProductSerializer)
 
 
 class ProductDetailsView(ModelViewSet):
@@ -91,22 +89,31 @@ class SingIn(APIView):
             return HttpResponse("NO", status=500)
 
 
+@transaction.atomic
+def create_user(data):
+    user = User.objects.create_user(**data)
+    Profile.objects.create(user=user, fullName=data['first_name'], phone='+123-456-7890')
+    return user
+
+
 class SingUp(APIView):
     def post(self, request):
         raw_data = request.body.decode('utf-8')
         data = json.loads(raw_data)
-        name = data.get('name')
-        username = data.get('username')
-        password = data.get('password')
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            return HttpResponse("No", status=500)
-        else:
-            User.objects.create_user(username=username,
-                                     password=password,
-                                     first_name=name,
-                                     )
-            return HttpResponse("OK", status=200)
+        try:
+            data = {
+                'first_name': data.get('name'),
+                'username': data.get('username'),
+                'password': data.get('password')
+            }
+            user = authenticate(username=data['username'], password=data['password'])
+            if user is not None:
+                return HttpResponse("No", status=500)
+            else:
+                create_user(data)
+                return HttpResponse("OK", status=200)
+        except ValueError as e:
+            return HttpResponseBadRequest(f'Ошибка пустые значения {e}', status=400)
 
 
 class BannerView(ModelViewSet):
@@ -134,7 +141,7 @@ class CategoriesView(ModelViewSet):
 
 
 class BasketAddView(APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         user = request.user
         baskets = Basket.objects.select_related('products').only('products').filter(user=user)
         products = [basket.products for basket in baskets]
@@ -147,7 +154,7 @@ class BasketAddView(APIView):
         serialized = ProductShortSerializer(products, many=True)
         return JsonResponse(serialized.data, safe=False, status=200)
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         print(request.data)
         form = BasketProductsSerializer(data=request.data)
         if form.is_valid():
@@ -200,7 +207,7 @@ class ProfileView(APIView):
         image = profile.pop('avatar')
         user = request.user
         avatar, create = Image.objects.get_or_create(
-            src=image.get('src'),
+            src=image.get('src') or '',
             alt=image.get('alt')
         )
         profile, created = Profile.objects.update_or_create(
@@ -324,6 +331,7 @@ class CatalogView(ModelViewSet):
         category = self.request.query_params.get('category')
         sort = self.request.query_params.get('sort')
         sortType = self.request.query_params.get('sortType')
+        tags = self.request.query_params.get('tags')
 
         sort_ord = (sort if sortType == 'dec' else f'-{sort}')
         f = {'title__contains': name,
@@ -364,7 +372,29 @@ class ReviewView(APIView):
 class TagsView(APIView):
     def get(self, request):
         category = self.request.query_params.get('category')
-        tags = (Tag.objects.filter(category=int(category)))
-        serialized = TagsSerializer(tags, many=True)
-        return JsonResponse(serialized.data, safe=False)
+        if category is not None:
+            tags = (Tag.objects.filter(category=int(category)))
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
+        else:
+            tags = Tag.objects.all()
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
 
+
+class SaleView(APIView):
+    def get(self, request):
+        queryset = Product.objects.filter(salePrice__gte=1)
+        print(queryset.first().salePrice)
+        serialized = SaleProductSerializer(queryset, many=True)
+        print(serialized.data)
+        data = {'items': serialized.data}
+        return JsonResponse(data, safe=False)
+
+
+def delete_product(request, pk):
+    product = Product.objects.get(id=pk)
+    product.Available = False
+    product.save()
+    messages.success(request, f'Удален товар #{pk}')
+    return HttpResponseRedirect('/admin/frontend/product/')

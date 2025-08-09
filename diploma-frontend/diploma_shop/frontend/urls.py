@@ -19,7 +19,8 @@ from .views import (ProductDetailsView,
                     CatalogView,
                     LimitedProductsView,
                     ReviewView,
-                    TagsView)
+                    TagsView, SaleView,
+                    delete_product)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -54,7 +55,11 @@ urlpatterns = [
 
     path('api/product/<int:pk>/reviews', ReviewView.as_view(), name='review'),
 
+    path('api/sales', SaleView.as_view(), name='sales'),
+
     path('api/tags', TagsView.as_view()),
+
+    path('delete/<int:pk>', delete_product, name='delete'),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),
