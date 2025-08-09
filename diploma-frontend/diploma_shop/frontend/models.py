@@ -95,7 +95,7 @@ class Profile(models.Model):
     user = OneToOneField(User, on_delete=models.CASCADE)
     fullName = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=15, blank=True)
+    phone = models.CharField(max_length=15, blank=True, null=True,)
     avatar = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
 
 

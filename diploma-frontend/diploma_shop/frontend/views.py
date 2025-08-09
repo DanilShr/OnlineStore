@@ -3,8 +3,9 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.db.models import Q, Sum, Avg
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -88,22 +89,31 @@ class SingIn(APIView):
             return HttpResponse("NO", status=500)
 
 
+@transaction.atomic
+def create_user(data):
+    user = User.objects.create_user(**data)
+    Profile.objects.create(user=user, fullName=data['first_name'], phone='+123-456-7890')
+    return user
+
+
 class SingUp(APIView):
     def post(self, request):
         raw_data = request.body.decode('utf-8')
         data = json.loads(raw_data)
-        name = data.get('name')
-        username = data.get('username')
-        password = data.get('password')
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            return HttpResponse("No", status=500)
-        else:
-            User.objects.create_user(username=username,
-                                     password=password,
-                                     first_name=name,
-                                     )
-            return HttpResponse("OK", status=200)
+        try:
+            data = {
+                'first_name': data.get('name'),
+                'username': data.get('username'),
+                'password': data.get('password')
+            }
+            user = authenticate(username=data['username'], password=data['password'])
+            if user is not None:
+                return HttpResponse("No", status=500)
+            else:
+                create_user(data)
+                return HttpResponse("OK", status=200)
+        except ValueError as e:
+            return HttpResponseBadRequest(f'Ошибка пустые значения {e}', status=400)
 
 
 class BannerView(ModelViewSet):
@@ -197,7 +207,7 @@ class ProfileView(APIView):
         image = profile.pop('avatar')
         user = request.user
         avatar, create = Image.objects.get_or_create(
-            src=image.get('src'),
+            src=image.get('src') or '',
             alt=image.get('alt')
         )
         profile, created = Profile.objects.update_or_create(
