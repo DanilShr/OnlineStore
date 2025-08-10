@@ -62,8 +62,8 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.category.title or None
 
 
-class ProductInline(admin.TabularInline):
-    model = Order.basket.through
+# class ProductInline(admin.TabularInline):
+#     model = Order.products.through
 
 
 @admin.register(Category)
@@ -79,7 +79,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_select_related = ('user',)
-    inlines = [ProductInline]
+    # inlines = [ProductInline]
     list_display = ('id', 'user_verbose', 'deliveryType', 'paymentType', 'totalCost', 'totalCost', 'address')
     list_editable = ('deliveryType', 'paymentType', 'totalCost', 'totalCost',)
     ordering = ('id',)

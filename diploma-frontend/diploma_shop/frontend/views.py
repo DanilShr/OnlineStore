@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Q, Sum, Avg, OuterRef
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django_filters.rest_framework import DjangoFilterBackend
+from requests import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -19,7 +20,7 @@ from django.contrib import messages
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Review, Tag)
+                     Category, Profile, Order, Review, Tag, CartItem)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
@@ -143,16 +144,18 @@ class CategoriesView(ModelViewSet):
 class BasketAddView(APIView):
     def get(self, request):
         user = request.user
-        baskets = Basket.objects.select_related('products').only('products').filter(user=user)
-        products = [basket.products for basket in baskets]
+        basket = Basket.objects.prefetch_related('item').get(user=user.id)
+        items = basket.item.all()
+        products = [i.product for i in items]
+        serializer = ProductSerializer(products, many=True)
+        products = serializer.data
         for product in products:
-            b = Basket.objects.only('count', 'price').get(Q(products=product) & Q(user=user))
-            count = b.count
-            price = b.price
-            product.count = count
-            product.price = price
-        serialized = ProductShortSerializer(products, many=True)
-        return JsonResponse(serialized.data, safe=False, status=200)
+            count = (CartItem.objects
+                     .only('count')
+                     .get(product=product['id'], basket=basket))
+            product['count'] = count.count
+        print(serializer.data)
+        return JsonResponse(serializer.data, safe=False, status=200)
 
     def post(self, request):
         print(request.data)
@@ -250,16 +253,16 @@ class OrderView(APIView):
 
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
-
         if pk is None:
             user = request.user
+            profile = Profile.objects.get(user=user)
             queryset = (Order.objects
                         .select_related('user')
                         .prefetch_related('basket__products')
-                        .filter(user=user.id))
-            products = Product.objects.filter(basket__order__in=queryset)
-            serialized_product = ProductShortSerializer(products, many=True)
+                        .filter(user=profile.id))
             serializer = OrderSerializer(queryset, many=True)
+            for order in queryset:
+                print(order.basket)
             if serializer:
                 return JsonResponse(serializer.data, safe=False)
             print(serializer.errors)
@@ -282,7 +285,6 @@ class OrderView(APIView):
         pk = kwargs.get('pk')
         user = request.user
         if pk is None:
-            print(request.data)
             basket = Basket.objects.filter(user=user.id).all()
             order = Order.objects.create(user=user.profile,
                                          createdAt=datetime.datetime.now(),

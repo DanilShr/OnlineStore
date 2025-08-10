@@ -83,10 +83,14 @@ class Product(models.Model):
         return self.title
 
 
+class CartItem(models.Model):
+    count = models.PositiveIntegerField(default=0, null=True, blank=True)
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.CASCADE)
+
+
 class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    products = models.ForeignKey(Product, blank=True, on_delete=models.CASCADE, default='')
-    count = models.IntegerField(default=0)
+    item = models.ManyToManyField(CartItem, blank=True, related_name='basket')
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     total_price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
 
@@ -95,7 +99,7 @@ class Profile(models.Model):
     user = OneToOneField(User, on_delete=models.CASCADE)
     fullName = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=15, blank=True, null=True,)
+    phone = models.CharField(max_length=15, blank=True, null=True, )
     avatar = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
 
 
@@ -108,7 +112,7 @@ class Order(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
-    basket = models.ManyToManyField(Basket, blank=True)
+    item = models.ManyToManyField(CartItem, blank=True)
 
 
 class Payment(models.Model):
