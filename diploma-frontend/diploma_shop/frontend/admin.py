@@ -63,7 +63,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 class ProductInline(admin.TabularInline):
-    model = Order.products.through
+    model = Order.basket.through
 
 
 @admin.register(Category)

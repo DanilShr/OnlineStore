@@ -108,7 +108,7 @@ class Order(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
-    products = models.ManyToManyField(Product, blank=True)
+    basket = models.ManyToManyField(Basket, blank=True)
 
 
 class Payment(models.Model):

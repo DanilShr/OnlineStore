@@ -76,6 +76,7 @@ class SaleProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     dateFrom = serializers.DateField(format='%m-%d')
     dateTo = serializers.DateField(format='%m-%d')
+
     class Meta:
         model = Product
         fields = ['id', 'price', 'salePrice',
@@ -135,12 +136,11 @@ class ProfileSerializedInput(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     user = ProfileSerializedOrder()
-    products = ProductShortSerializer(many=True)
 
     class Meta:
         model = Order
         fields = ['id', 'createdAt', 'user',
-                  'deliveryType', 'paymentType', 'totalCost', 'status', 'city', 'address', 'products']
+                  'deliveryType', 'paymentType', 'totalCost', 'status', 'city', 'address']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

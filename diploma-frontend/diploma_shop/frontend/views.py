@@ -4,7 +4,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models import Q, Sum, Avg
+from django.db.models import Q, Sum, Avg, OuterRef
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
@@ -255,32 +255,42 @@ class OrderView(APIView):
             user = request.user
             queryset = (Order.objects
                         .select_related('user')
-                        .prefetch_related('products')
+                        .prefetch_related('basket__products')
                         .filter(user=user.id))
+            products = Product.objects.filter(basket__order__in=queryset)
+            serialized_product = ProductShortSerializer(products, many=True)
             serializer = OrderSerializer(queryset, many=True)
             if serializer:
                 return JsonResponse(serializer.data, safe=False)
             print(serializer.errors)
             return HttpResponse('NO', status=500)
         else:
-            order = Order.objects.get(pk=pk)
+            order = Order.objects.select_related('user').prefetch_related('basket').get(pk=pk)
+            products_data = [basket.products for basket in order.basket.all()]
+            serializer_product = ProductShortSerializer(products_data, many=True)
+            products = serializer_product.data
+            for product in products:
+                basket = Basket.objects.get(products=product['id'])
+                product['count'] = basket.count
             serializer = OrderSerializer(order)
-            return JsonResponse(serializer.data, safe=False)
+            order = serializer.data
+            order['products'] = products
+            print(order)
+            return JsonResponse(order, safe=False)
 
     def post(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         user = request.user
         if pk is None:
             print(request.data)
-            products = request.data
-            product_ids = [item["id"] for item in products]
+            basket = Basket.objects.filter(user=user.id).all()
             order = Order.objects.create(user=user.profile,
                                          createdAt=datetime.datetime.now(),
                                          paymentType='not selected',
                                          deliveryType='not selected',
                                          status='being issued',
                                          totalCost=0)
-            order.products.add(*product_ids)
+            order.basket.add(*basket)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
             user = request.user
