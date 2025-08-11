@@ -145,17 +145,9 @@ class BasketAddView(APIView):
     def get(self, request):
         user = request.user
         basket = Basket.objects.prefetch_related('item').get(user=user.id)
-        items = basket.item.all()
-        products = [i.product for i in items]
-        serializer = ProductShortSerializer(products, many=True)
-        products = serializer.data
-        for product in products:
-            count = (CartItem.objects
-                     .only('count')
-                     .get(product=product['id'], basket=basket))
-            product['count'] = count.count
-        print(serializer.data)
-        return JsonResponse(serializer.data, safe=False, status=200)
+        products = self.get_basket_item(basket)
+
+        return JsonResponse(products, status=200, safe=False)
 
     def post(self, request):
         user = request.user
