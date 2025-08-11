@@ -147,7 +147,7 @@ class BasketAddView(APIView):
         basket = Basket.objects.prefetch_related('item').get(user=user.id)
         items = basket.item.all()
         products = [i.product for i in items]
-        serializer = ProductSerializer(products, many=True)
+        serializer = ProductShortSerializer(products, many=True)
         products = serializer.data
         for product in products:
             count = (CartItem.objects
@@ -160,11 +160,13 @@ class BasketAddView(APIView):
     def post(self, request):
         user = request.user
         basket, create = Basket.objects.update_or_create(user=user.id,
-                                                 defaults={
-                                                     'user': user,
-                                                 })
+                                                         defaults={
+                                                             'user': user,
+                                                         })
         data = request.data
         product = Product.objects.get(id=data['id'])
+        product.count -= data['count']
+        product.save()
         items = CartItem.objects.filter(product=product, basket=basket)
         if items:
             item = items.first()
@@ -173,28 +175,42 @@ class BasketAddView(APIView):
         else:
             item = CartItem.objects.create(count=data['count'], product=product)
             basket.item.add(item)
-        serializer = ProductShortSerializer(product)
-        return JsonResponse(serializer.data, status=200)
+
+        products = self.get_basket_item(basket)
+
+        return JsonResponse(products, status=200, safe=False)
 
     def delete(self, request):
-        form = BasketProductsSerializer(data=request.data)
-        if form.is_valid():
-            id = form.validated_data.get("id")
-            count = form.validated_data.get("count")
-            user = request.user
-            product = Product.objects.get(id=id)
-            basket = Basket.objects.get(user=user, products=product)
-            if basket.count - count >= 1:
-                basket.count -= count
-                product.count += count
-                product.save()
-                basket.save()
-                return HttpResponse("OK", status=200)
-            else:
-                Basket.delete(basket)
-                product.count += count
-                product.save()
-                return HttpResponse("OK", status=200)
+        user = request.user
+        data = request.data
+        basket = Basket.objects.get(user=user)
+        item = CartItem.objects.get(basket=basket, product=data['id'])
+        product = Product.objects.get(id=data['id'])
+        if item.count - data['count'] > 0:
+            item.count -= data['count']
+            item.save()
+        else:
+            item.delete()
+        product.count += data['count']
+        product.save()
+
+        products = self.get_basket_item(basket)
+
+        return JsonResponse(products, status=200, safe=False)
+
+    def get_basket_item(self, basket):
+        items = basket.item.all()
+        products = [i.product for i in items]
+        serializer = ProductShortSerializer(products, many=True)
+        products = serializer.data
+        for p in products:
+            count = (CartItem.objects
+                     .only('count')
+                     .get(product=p['id'], basket=basket))
+            p['count'] = count.count
+        return products
+
+
 
 
 class ProfileView(APIView):
