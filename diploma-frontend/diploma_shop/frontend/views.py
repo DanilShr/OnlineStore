@@ -175,7 +175,7 @@ class BasketAddView(APIView):
     def delete(self, request):
         user = request.user
         data = request.data
-        basket = Basket.objects.get(user=user)
+        basket = Basket.objects.prefetch_related('item').get(user=user)
         item = CartItem.objects.get(basket=basket, product=data['id'])
         product = Product.objects.get(id=data['id'])
         if item.count - data['count'] > 0:
@@ -203,8 +203,6 @@ class BasketAddView(APIView):
         return products
 
 
-
-
 class ProfileView(APIView):
 
     def get(self, request):
@@ -227,9 +225,11 @@ class ProfileView(APIView):
             defaults={
                 'fullName': profile.get('fullName'),
                 'phone': profile.get('phone'),
+                'avatar': avatar
             }
         )
-        return HttpResponse("OK", status=200)
+        profile_data = ProfileSerialized(profile)
+        return JsonResponse(profile_data.data, safe=False, status=200)
 
 
 class AvatarView(APIView):
