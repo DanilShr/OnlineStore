@@ -217,17 +217,13 @@ class ProfileView(APIView):
         profile = request.data
         image = profile.pop('avatar')
         user = request.user
-        avatar, create = Image.objects.get_or_create(
-            src=image.get('src'),
-            alt=image.get('alt')
-        )
+
         profile, created = Profile.objects.update_or_create(
             user=user,
             defaults={
                 'fullName': profile.get('fullName'),
                 'phone': profile.get('phone'),
                 'email': profile.get('email'),
-                'avatar': avatar
             }
         )
         profile_data = ProfileSerialized(profile)
@@ -312,7 +308,7 @@ class OrderView(APIView):
             order = Order.objects.filter(pk=pk)
             basket = Basket.objects.filter(user=user)
             if basket:
-                basket.firts().delete()
+                basket.first().delete()
             items = CartItem.objects.select_related('product').filter(order=order.first())
             for item in items:
                 price = item.count * item.product.price

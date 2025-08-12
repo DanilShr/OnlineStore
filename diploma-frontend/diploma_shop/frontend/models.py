@@ -25,12 +25,13 @@ class Tag(models.Model):
 
 
 def user_directory_path(instance, filename):
-    return "user_{0}/{1}".format(instance.id, filename)
+    return "Avatar/{1}".format(instance.id, filename)
 
 
 class Image(models.Model):
-    src = models.ImageField(upload_to='images/')
+    src = models.ImageField(upload_to=user_directory_path)
     alt = models.CharField(max_length=50)
+
 
     def __str__(self):
         return self.src.name

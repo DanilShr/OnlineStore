@@ -63,7 +63,7 @@ class ProductSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.salePrice > 0:
-            instance.price = instance.salePrice
+            data['price'] = instance.salePrice
         return data
 
 
@@ -76,6 +76,12 @@ class ProductShortSerializer(serializers.ModelSerializer):
         fields = ['id', 'category', 'price', 'count', 'date', 'title',
                   'description', 'freeDelivery', 'images',
                   'tags', 'reviews', 'rating']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.salePrice > 0:
+            data['price'] = instance.salePrice
+        return data
 
 
 class SaleProductSerializer(serializers.ModelSerializer):
