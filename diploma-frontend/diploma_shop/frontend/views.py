@@ -144,10 +144,11 @@ class CategoriesView(ModelViewSet):
 class BasketAddView(APIView):
     def get(self, request):
         user = request.user
-        basket = Basket.objects.prefetch_related('item').get(user=user.id)
-        products = self.get_basket_item(basket)
-
-        return JsonResponse(products, status=200, safe=False)
+        basket = Basket.objects.prefetch_related('item').filter(user=user.id).first()
+        if basket:
+            products = self.get_basket_item(basket)
+            return JsonResponse(products, status=200, safe=False)
+        return HttpResponse(status=200)
 
     def post(self, request):
         user = request.user
@@ -217,7 +218,7 @@ class ProfileView(APIView):
         image = profile.pop('avatar')
         user = request.user
         avatar, create = Image.objects.get_or_create(
-            src=image.get('src') or '',
+            src=image.get('src'),
             alt=image.get('alt')
         )
         profile, created = Profile.objects.update_or_create(
@@ -225,6 +226,7 @@ class ProfileView(APIView):
             defaults={
                 'fullName': profile.get('fullName'),
                 'phone': profile.get('phone'),
+                'email': profile.get('email'),
                 'avatar': avatar
             }
         )
@@ -262,63 +264,67 @@ class OrderView(APIView):
 
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
+        user = request.user
+        profile = Profile.objects.get(user=user)
         if pk is None:
-            user = request.user
-            profile = Profile.objects.get(user=user)
-            queryset = (Order.objects
-                        .select_related('user')
-                        .prefetch_related('basket__products')
-                        .filter(user=profile.id))
-            serializer = OrderSerializer(queryset, many=True)
-            for order in queryset:
-                print(order.basket)
-            if serializer:
-                return JsonResponse(serializer.data, safe=False)
-            print(serializer.errors)
-            return HttpResponse('NO', status=500)
+            orders = Order.objects.prefetch_related('item').filter(user=profile)
+            serializer_order = OrderSerializer(orders, many=True)
+            order_list = serializer_order.data
+            for num in range(len(orders) - 1):
+                products = [i.product for i in orders[num].item.all()]
+                serializer_products = ProductShortSerializer(products, many=True)
+                order_list[num]['products'] = serializer_products.data
+            return JsonResponse(serializer_order.data, safe=False, status=200)
         else:
-            order = Order.objects.select_related('user').prefetch_related('basket').get(pk=pk)
-            products_data = [basket.products for basket in order.basket.all()]
-            serializer_product = ProductShortSerializer(products_data, many=True)
-            products = serializer_product.data
-            for product in products:
-                basket = Basket.objects.get(products=product['id'])
-                product['count'] = basket.count
-            serializer = OrderSerializer(order)
-            order = serializer.data
-            order['products'] = products
-            print(order)
-            return JsonResponse(order, safe=False)
+            order = (Order.objects
+                     .prefetch_related('item')
+                     .select_related('user')
+                     .get(id=pk))
+            serialized_order = OrderSerializer(order)
+            order_data = serialized_order.data
+            products = [i.product for i in order.item.all()]
+            serializer_products = ProductShortSerializer(products, many=True)
+            product_list = serializer_products.data
+            for product in product_list:
+                item = CartItem.objects.get(product=product['id'], order=order)
+                product['count'] = item.count
+            order_data['products'] = product_list
+            return JsonResponse(order_data, safe=False, status=200)
 
     def post(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         user = request.user
         if pk is None:
-            basket = Basket.objects.filter(user=user.id).all()
+            basket = Basket.objects.get(user=user)
+            items = CartItem.objects.filter(basket=basket)
             order = Order.objects.create(user=user.profile,
                                          createdAt=datetime.datetime.now(),
                                          paymentType='not selected',
                                          deliveryType='not selected',
                                          status='being issued',
                                          totalCost=0)
-            order.basket.add(*basket)
+            order.item.add(*items)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
+            total_price = 0
             user = request.user
             order_data = request.data
             order = Order.objects.filter(pk=pk)
-            basket = Basket.objects.filter(user=user.id).all()
-            total_sum = basket.aggregate(total=Sum('total_price'))['total']
-            basket.delete()
+            basket = Basket.objects.filter(user=user)
+            if basket:
+                basket.firts().delete()
+            items = CartItem.objects.select_related('product').filter(order=order.first())
+            for item in items:
+                price = item.count * item.product.price
+                total_price += price
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': total_sum,
+                'totalCost': total_price,
                 'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
             }
-
             order.update(**new_date)
 
             return JsonResponse({'orderId': order.first().id}, status=200)

@@ -112,7 +112,7 @@ class Order(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
-    item = models.ManyToManyField(CartItem, blank=True)
+    item = models.ManyToManyField(CartItem, blank=True,  related_name='order')
 
 
 class Payment(models.Model):

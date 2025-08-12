@@ -60,6 +60,12 @@ class ProductSerializer(serializers.ModelSerializer):
                   'description', 'fullDescription', 'freeDelivery', 'images',
                   'tags', 'reviews', 'specifications', 'rating']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.salePrice > 0:
+            instance.price = instance.salePrice
+        return data
+
 
 class ProductShortSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True)
