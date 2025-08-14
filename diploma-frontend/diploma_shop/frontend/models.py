@@ -25,29 +25,27 @@ class Tag(models.Model):
 
 
 def user_directory_path(instance, filename):
-    return "user_{0}/{1}".format(instance.id, filename)
+    return "Avatar/{1}".format(instance.id, filename)
 
 
 class Image(models.Model):
-    src = models.ImageField(upload_to='images/')
+    src = models.ImageField(upload_to=user_directory_path)
     alt = models.CharField(max_length=50)
+
 
     def __str__(self):
         return self.src.name
 
 
-class Subcategories(models.Model):
-    title = models.CharField(max_length=50)
-    image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.title
-
 
 class Category(models.Model):
     title = models.CharField(max_length=50)
     image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
-    subcategories = models.ManyToManyField(Subcategories, blank=True)
+    subcategories = models.ManyToManyField(
+        'self',
+        blank=True,
+        symmetrical=False
+    )
     tags = models.ManyToManyField(Tag, blank=True)
 
     def __str__(self):
@@ -63,7 +61,7 @@ class Product(models.Model):
     title = models.CharField(max_length=50)
     description = models.TextField(max_length=200, blank=True)
     fullDescription = models.TextField(max_length=200, blank=True)
-    category = models.ForeignKey(Category, blank=True, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, blank=True, null=True, on_delete=models.CASCADE)
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     count = models.IntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -73,7 +71,7 @@ class Product(models.Model):
     images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ManyToManyField(Review, blank=True)
-    specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
+    specifications = models.ManyToManyField(Specification, blank=True)
     rating = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     salePrice = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     dateFrom = models.DateField(null=True, blank=True)
@@ -83,10 +81,14 @@ class Product(models.Model):
         return self.title
 
 
+class CartItem(models.Model):
+    count = models.PositiveIntegerField(default=0, null=True, blank=True)
+    product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.CASCADE)
+
+
 class Basket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    products = models.ForeignKey(Product, blank=True, on_delete=models.CASCADE, default='')
-    count = models.IntegerField(default=0)
+    item = models.ManyToManyField(CartItem, blank=True, related_name='basket')
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     total_price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
 
@@ -95,7 +97,7 @@ class Profile(models.Model):
     user = OneToOneField(User, on_delete=models.CASCADE)
     fullName = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=15, blank=True, null=True,)
+    phone = models.CharField(max_length=15, blank=True, null=True, )
     avatar = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
 
 
@@ -108,7 +110,7 @@ class Order(models.Model):
     status = models.CharField(max_length=50, null=True, blank=True)
     city = models.CharField(max_length=50, null=True, blank=True)
     address = models.TextField(max_length=200, null=True, blank=True)
-    products = models.ManyToManyField(Product, blank=True)
+    item = models.ManyToManyField(CartItem, blank=True,  related_name='order')
 
 
 class Payment(models.Model):

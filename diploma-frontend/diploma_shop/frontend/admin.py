@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.urls import reverse
 
-from .models import Product, Profile, Order, Category, Review, Image
+from .models import Product, Profile, Order, Category, Review, Image, Specification
 
 
 # Register your models here.
@@ -21,6 +21,10 @@ class ImageInline(admin.TabularInline):
     model = Product.images.through
 
 
+class SpecificationInline(admin.TabularInline):
+    model = Product.specifications.through
+
+
 def delete_ob(obj):
     obj.Available = False
     obj.save()
@@ -28,18 +32,18 @@ def delete_ob(obj):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    inlines = [ImageInline]
+    inlines = [ImageInline, SpecificationInline]
     actions = [delete_product, available_product]
     link_select_related = ('category',)
     search_fields = ('title',)
-    list_display = ('id', 'title', 'price', 'categories', 'rating', 'freeDelivery', 'limited',
+    list_display = ('id', 'title', 'price', 'rating', 'freeDelivery', 'limited',
                     'count', 'salePrice', 'Available', 'edit_link', 'delete_link')
     list_editable = ('price', 'count', 'freeDelivery', 'limited', 'salePrice')
     list_display_links = ('title',)
     ordering = ('id', 'title',)
 
     fieldsets = [
-        ('Advanced', {'fields': ('title', 'price', 'category', 'rating')}),
+        ('Advanced', {'fields': ('title', 'description', 'price', 'category', 'rating')}),
         ('Extra info', {'classes': ('collapse',),
                         'fields': ('freeDelivery', 'limited', 'count', 'specifications',
                                    'Available', 'reviews', 'tags')}),
@@ -62,8 +66,8 @@ class ProductAdmin(admin.ModelAdmin):
         return obj.category.title or None
 
 
-class ProductInline(admin.TabularInline):
-    model = Order.products.through
+# class ProductInline(admin.TabularInline):
+#     model = Order.products.through
 
 
 @admin.register(Category)
@@ -79,7 +83,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_select_related = ('user',)
-    inlines = [ProductInline]
+    # inlines = [ProductInline]
     list_display = ('id', 'user_verbose', 'deliveryType', 'paymentType', 'totalCost', 'totalCost', 'address')
     list_editable = ('deliveryType', 'paymentType', 'totalCost', 'totalCost',)
     ordering = ('id',)

@@ -5,9 +5,8 @@ from .models import (Product,
                      Basket,
                      Tag,
                      Review,
-                     Subcategories,
                      Category,
-                     Profile, Order, Payment)
+                     Profile, Order, Payment, Specification)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -49,16 +48,29 @@ class TagsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
+class SpecificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Specification
+        fields = '__all__'
+
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     tags = TagsShortSerializer(many=True)
     reviews = ReviewFullSerialized(many=True)
+    specifications = SpecificationSerializer(many=True)
 
     class Meta:
         model = Product
         fields = ['id', 'category', 'price', 'count', 'date', 'title',
                   'description', 'fullDescription', 'freeDelivery', 'images',
                   'tags', 'reviews', 'specifications', 'rating']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.salePrice > 0:
+            data['price'] = instance.salePrice
+        return data
 
 
 class ProductShortSerializer(serializers.ModelSerializer):
@@ -71,11 +83,18 @@ class ProductShortSerializer(serializers.ModelSerializer):
                   'description', 'freeDelivery', 'images',
                   'tags', 'reviews', 'rating']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.salePrice > 0:
+            data['price'] = instance.salePrice
+        return data
+
 
 class SaleProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     dateFrom = serializers.DateField(format='%m-%d')
     dateTo = serializers.DateField(format='%m-%d')
+
     class Meta:
         model = Product
         fields = ['id', 'price', 'salePrice',
@@ -86,7 +105,7 @@ class SubcategoriesSerializer(serializers.ModelSerializer):
     image = ProductImageSerializer()
 
     class Meta:
-        model = Subcategories
+        model = Category
         fields = ['id', 'title', 'image']
 
 
@@ -135,12 +154,11 @@ class ProfileSerializedInput(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     user = ProfileSerializedOrder()
-    products = ProductShortSerializer(many=True)
 
     class Meta:
         model = Order
         fields = ['id', 'createdAt', 'user',
-                  'deliveryType', 'paymentType', 'totalCost', 'status', 'city', 'address', 'products']
+                  'deliveryType', 'paymentType', 'totalCost', 'status', 'city', 'address']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
