@@ -5,9 +5,8 @@ from .models import (Product,
                      Basket,
                      Tag,
                      Review,
-                     Subcategories,
                      Category,
-                     Profile, Order, Payment)
+                     Profile, Order, Payment, Specification)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -49,10 +48,17 @@ class TagsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
+class SpecificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Specification
+        fields = '__all__'
+
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ImageSerializer(many=True)
     tags = TagsShortSerializer(many=True)
     reviews = ReviewFullSerialized(many=True)
+    specifications = SpecificationSerializer(many=True)
 
     class Meta:
         model = Product
@@ -99,7 +105,7 @@ class SubcategoriesSerializer(serializers.ModelSerializer):
     image = ProductImageSerializer()
 
     class Meta:
-        model = Subcategories
+        model = Category
         fields = ['id', 'title', 'image']
 
 

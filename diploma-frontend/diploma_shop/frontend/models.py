@@ -37,18 +37,15 @@ class Image(models.Model):
         return self.src.name
 
 
-class Subcategories(models.Model):
-    title = models.CharField(max_length=50)
-    image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.title
-
 
 class Category(models.Model):
     title = models.CharField(max_length=50)
     image = models.ForeignKey(Image, blank=True, null=True, on_delete=models.CASCADE)
-    subcategories = models.ManyToManyField(Subcategories, blank=True)
+    subcategories = models.ManyToManyField(
+        'self',
+        blank=True,
+        symmetrical=False
+    )
     tags = models.ManyToManyField(Tag, blank=True)
 
     def __str__(self):
@@ -64,7 +61,7 @@ class Product(models.Model):
     title = models.CharField(max_length=50)
     description = models.TextField(max_length=200, blank=True)
     fullDescription = models.TextField(max_length=200, blank=True)
-    category = models.ForeignKey(Category, blank=True, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, blank=True, null=True, on_delete=models.CASCADE)
     price = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     count = models.IntegerField(default=0)
     date = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -74,7 +71,7 @@ class Product(models.Model):
     images = models.ManyToManyField(Image, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     reviews = models.ManyToManyField(Review, blank=True)
-    specifications = models.ForeignKey(Specification, blank=True, on_delete=models.CASCADE, null=True)
+    specifications = models.ManyToManyField(Specification, blank=True)
     rating = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     salePrice = models.DecimalField(default=0, max_digits=8, decimal_places=2)
     dateFrom = models.DateField(null=True, blank=True)

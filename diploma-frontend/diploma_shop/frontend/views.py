@@ -28,13 +28,13 @@ from .serialized import (ProductSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
                          OrderSerializer, PaymentSerializer,
-                         TagsSerializer, SaleProductSerializer)
+                         TagsSerializer, SaleProductSerializer, ReviewSerializer, ReviewFullSerialized)
 
 
 class ProductDetailsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'specifications'))
-                .prefetch_related('tags', 'reviews', 'images'))
+                 .select_related('category'))
+                .prefetch_related('tags', 'reviews', 'images', 'specifications'))
     serializer_class = ProductSerializer
 
 
@@ -45,7 +45,7 @@ class ImageDetailsView(ModelViewSet):
 
 class PopularProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'specifications'))
+                 .select_related('category'))
                 .prefetch_related('tags', 'reviews', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
     serializer_class = ProductShortSerializer
 
@@ -57,7 +57,7 @@ class PopularProductsView(ModelViewSet):
 
 class LimitedProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'specifications'))
+                 .select_related('category'))
                 .prefetch_related('tags', 'reviews', 'images').filter(limited=True))
     serializer_class = ProductShortSerializer
 
@@ -119,7 +119,7 @@ class SingUp(APIView):
 
 class BannerView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'specifications'))
+                 .select_related('category'))
                 .prefetch_related('tags', 'images', 'reviews')[:3])
     serializer_class = ProductShortSerializer
 
@@ -355,21 +355,34 @@ class CatalogView(ModelViewSet):
         sort = self.request.query_params.get('sort')
         sortType = self.request.query_params.get('sortType')
         tags = self.request.query_params.get('tags')
+        self.limit = 2
+        self.page = int(self.request.query_params.get('currentPage'))
+        print(tags)
 
         sort_ord = (sort if sortType == 'dec' else f'-{sort}')
         f = {'title__contains': name,
              'price__gte': minPrice,
              'price__lte': maxPrice,
              'freeDelivery': (True if freeDelivery == 'true' else False),
-             'Available': (True if available == 'true' else False),
-             'category': (int(category) if category else None)}
+             'Available': (True if available == 'true' else False), }
+        if tags:
+            f['tags__in'] = tags
+        if category:
+            f['category'] = category
+
         queryset = queryset.filter(**f).order_by(sort_ord)
-        return queryset
+        self.count = queryset.count()
+        limit_page = self.limit * self.page
+        print(self.count)
+        return queryset[limit_page - self.limit:limit_page:]
 
     def list(self, request, *args, **kwargs):
         response = super().list(self, request, *args, **kwargs)
         response.data = response.data.get("results", [])
         response.data = {'items': response.data}
+        response.data['currentPage'] = self.page
+        response.data['lastPage'] = int(self.count / self.limit)
+
         return response
 
 
@@ -378,12 +391,11 @@ class ReviewView(APIView):
         pk = kwargs['pk']
         data = request.data
         review = Review.objects.create(**data)
-        print(review)
         product = Product.objects.get(id=pk)
         product.reviews.add(review)
-        print(data)
         self.update_rate(product)
-        return HttpResponse(status=200)
+        serializer = ReviewFullSerialized(product.reviews.all(), many=True)
+        return JsonResponse(serializer.data, safe=False)
 
     def update_rate(self, product):
         product.rating = (Review.objects
