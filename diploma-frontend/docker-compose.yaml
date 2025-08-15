@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  django:
+    build: .
+    environment:
+      - DEBUG=0
+    expose:
+      - "8000"
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - django
+    restart: unless-stopped
+
+volumes:
+  static_volume:
