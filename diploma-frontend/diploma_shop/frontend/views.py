@@ -176,20 +176,21 @@ class BasketAddView(APIView):
     def delete(self, request):
         user = request.user
         data = request.data
-        basket = Basket.objects.prefetch_related('item').get(user=user)
-        item = CartItem.objects.get(basket=basket, product=data['id'])
-        product = Product.objects.get(id=data['id'])
-        if item.count - data['count'] > 0:
-            item.count -= data['count']
-            item.save()
-        else:
-            item.delete()
-        product.count += data['count']
-        product.save()
+        basket = Basket.objects.prefetch_related('item').filter(user=user)
+        if basket.exists():
+            item = CartItem.objects.get(basket=basket.first(), product=data['id'])
+            product = Product.objects.get(id=data['id'])
+            if item.count - data['count'] > 0:
+                item.count -= data['count']
+                item.save()
+            else:
+                item.delete()
+            product.count += data['count']
+            product.save()
 
-        products = self.get_basket_item(basket)
-
-        return JsonResponse(products, status=200, safe=False)
+            products = self.get_basket_item(basket.first())
+            return JsonResponse(products, status=200, safe=False)
+        return JsonResponse([], status=200, safe=False)
 
     def get_basket_item(self, basket):
         items = basket.item.all()
@@ -354,8 +355,8 @@ class CatalogView(ModelViewSet):
         category = self.request.query_params.get('category')
         sort = self.request.query_params.get('sort')
         sortType = self.request.query_params.get('sortType')
-        tags = self.request.query_params.get('tags')
-        self.limit = 2
+        tags = self.request.GET.getlist('tags[]')
+        self.limit = int(self.request.query_params.get('limit', 10))
         self.page = int(self.request.query_params.get('currentPage'))
         print(tags)
 
