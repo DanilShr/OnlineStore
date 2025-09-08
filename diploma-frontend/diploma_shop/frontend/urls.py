@@ -15,7 +15,12 @@ from .views import (ProductDetailsView,
                     AvatarView,
                     PasswordView,
                     OrderView,
-                    PaymentView, CatalogView)
+                    PaymentView,
+                    CatalogView,
+                    LimitedProductsView,
+                    ReviewView,
+                    TagsView, SaleView,
+                    delete_product)
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -23,7 +28,7 @@ router = routers.DefaultRouter()
 router.register(r'product', ProductDetailsView)
 router.register(r'images', ImageDetailsView)
 router.register(r'products/popular', PopularProductsView, basename="popular-products")
-router.register(r'products/limited', PopularProductsView, basename="limited-products")
+router.register(r'products/limited', LimitedProductsView, basename="limited-products")
 router.register(r'banners', BannerView, basename='banners')
 router.register(r"categories", CategoriesView)
 router.register(r'catalog', CatalogView, basename="catalog")
@@ -47,6 +52,14 @@ urlpatterns = [
     re_path(r'^api/orders/?$', OrderView.as_view(), name='orders'),
 
     path('api/payment/<int:pk>', PaymentView.as_view(), name='payment'),
+
+    path('api/product/<int:pk>/reviews', ReviewView.as_view(), name='review'),
+
+    path('api/sales', SaleView.as_view(), name='sales'),
+
+    path('api/tags', TagsView.as_view()),
+
+    path('delete/<int:pk>', delete_product, name='delete'),
 
     path('', TemplateView.as_view(template_name="frontend/index.html")),
     path('about/', TemplateView.as_view(template_name="frontend/about.html")),

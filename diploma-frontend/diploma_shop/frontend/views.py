@@ -3,38 +3,38 @@ import json
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.contrib.auth.views import PasswordChangeView
-from django.db.models import Q
-from django.http import HttpResponse, HttpResponseServerError, JsonResponse
-from django.views.generic import DetailView
+from django.db import transaction
+from django.db.models import Q, Sum, Avg, OuterRef
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django_filters.rest_framework import DjangoFilterBackend
 from requests import Response
-from rest_framework import status, request
-from rest_framework.filters import SearchFilter
-from rest_framework.mixins import CreateModelMixin
-from rest_framework.parsers import JSONParser
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet
+from django.http import HttpResponseRedirect
+
+from django.contrib import messages
 
 from .models import (Product,
                      Image,
                      Basket,
-                     Category, Profile, Order, Payment)
+                     Category, Profile, Order, Review, Tag, CartItem)
 from .serialized import (ProductSerializer,
                          ImageSerializer,
                          ProductShortSerializer,
                          CategoriesSerializer,
                          BasketProductsSerializer,
                          ProfileSerialized,
-                         ProductImageSerializer, ProfileSerializedInput, OrderSerializer, PaymentSerializer)
+                         OrderSerializer, PaymentSerializer,
+                         TagsSerializer, SaleProductSerializer, ReviewSerializer, ReviewFullSerialized)
 
 
 class ProductDetailsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images'))
+                 .select_related('category'))
+                .prefetch_related('tags', 'reviews', 'images', 'specifications'))
     serializer_class = ProductSerializer
 
 
@@ -45,13 +45,25 @@ class ImageDetailsView(ModelViewSet):
 
 class PopularProductsView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images').filter(rating__gte=3))[:5]
+                 .select_related('category'))
+                .prefetch_related('tags', 'reviews', 'images').filter(rating__gte=4.5).filter(Available=True))[:4]
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response.data = response.data.get("results", [])  # Оставляем только results
+        response.data = response.data.get("results", [])
+        return response
+
+
+class LimitedProductsView(ModelViewSet):
+    queryset = ((Product.objects
+                 .select_related('category'))
+                .prefetch_related('tags', 'reviews', 'images').filter(limited=True))
+    serializer_class = ProductShortSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = response.data.get("results", [])
         return response
 
 
@@ -78,28 +90,37 @@ class SingIn(APIView):
             return HttpResponse("NO", status=500)
 
 
+@transaction.atomic
+def create_user(data):
+    user = User.objects.create_user(**data)
+    Profile.objects.create(user=user, fullName=data['first_name'], phone='+123-456-7890')
+    return user
+
+
 class SingUp(APIView):
     def post(self, request):
         raw_data = request.body.decode('utf-8')
         data = json.loads(raw_data)
-        name = data.get('name')
-        username = data.get('username')
-        password = data.get('password')
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            return HttpResponse("No", status=500)
-        else:
-            User.objects.create_user(username=username,
-                                     password=password,
-                                     first_name=name,
-                                     )
-            return HttpResponse("OK", status=200)
+        try:
+            data = {
+                'first_name': data.get('name'),
+                'username': data.get('username'),
+                'password': data.get('password')
+            }
+            user = authenticate(username=data['username'], password=data['password'])
+            if user is not None:
+                return HttpResponse("No", status=500)
+            else:
+                create_user(data)
+                return HttpResponse("OK", status=200)
+        except ValueError as e:
+            return HttpResponseBadRequest(f'Ошибка пустые значения {e}', status=400)
 
 
 class BannerView(ModelViewSet):
     queryset = ((Product.objects
-                 .select_related('category', 'reviews', 'specifications'))
-                .prefetch_related('tags', 'images'))
+                 .select_related('category'))
+                .prefetch_related('tags', 'images', 'reviews')[:3])
     serializer_class = ProductShortSerializer
 
     def list(self, request, *args, **kwargs):
@@ -121,55 +142,67 @@ class CategoriesView(ModelViewSet):
 
 
 class BasketAddView(APIView):
-    def get(self, request, *args, **kwargs):
+    def get(self, request):
         user = request.user
-        baskets = Basket.objects.select_related('products').only('products').filter(user=user)
-        products = [basket.products for basket in baskets]
-        for product in products:
-            b = Basket.objects.only('count', 'price').get(Q(products=product) & Q(user=user))
-            count = b.count
-            price = b.price
-            product.count = count
-            product.price = price
-        serialized = ProductShortSerializer(products, many=True)
-        data = serialized.data
-        return JsonResponse(serialized.data, safe=False, status=200)
+        basket = Basket.objects.prefetch_related('item').filter(user=user.id).first()
+        if basket:
+            products = self.get_basket_item(basket)
+            return JsonResponse(products, status=200, safe=False)
+        return HttpResponse(status=200)
 
-    def post(self, request, *args, **kwargs):
-        print(request.data)
-        form = BasketProductsSerializer(data=request.data)
-        if form.is_valid():
-            id = form.validated_data.get("id")
-            count = form.validated_data.get("count")
-            product = Product.objects.get(id=id)
-            if product.count > int(count):
-                basket, created = Basket.objects.get_or_create(user=request.user, products=product)
-                basket.count += count
-                basket.price += product.price
-                basket.save()
-                product.count -= count
-                product.save()
-                return HttpResponse("OK", status=200)
+    def post(self, request):
+        user = request.user
+        basket, create = Basket.objects.update_or_create(user=user.id,
+                                                         defaults={
+                                                             'user': user,
+                                                         })
+        data = request.data
+        product = Product.objects.get(id=data['id'])
+        product.count -= data['count']
+        product.save()
+        items = CartItem.objects.filter(product=product, basket=basket)
+        if items:
+            item = items.first()
+            item.count += int(data['count'])
+            item.save()
+        else:
+            item = CartItem.objects.create(count=data['count'], product=product)
+            basket.item.add(item)
+
+        products = self.get_basket_item(basket)
+
+        return JsonResponse(products, status=200, safe=False)
 
     def delete(self, request):
-        form = BasketProductsSerializer(data=request.data)
-        if form.is_valid():
-            id = form.validated_data.get("id")
-            count = form.validated_data.get("count")
-            user = request.user
-            product = Product.objects.get(id=id)
-            basket = Basket.objects.get(user=user, products=product)
-            if basket.count - count >= 1:
-                basket.count -= count
-                product.count += count
-                product.save()
-                basket.save()
-                return HttpResponse("OK", status=200)
+        user = request.user
+        data = request.data
+        basket = Basket.objects.prefetch_related('item').filter(user=user)
+        if basket.exists():
+            item = CartItem.objects.get(basket=basket.first(), product=data['id'])
+            product = Product.objects.get(id=data['id'])
+            if item.count - data['count'] > 0:
+                item.count -= data['count']
+                item.save()
             else:
-                Basket.delete(basket)
-                product.count += count
-                product.save()
-                return HttpResponse("OK", status=200)
+                item.delete()
+            product.count += data['count']
+            product.save()
+
+            products = self.get_basket_item(basket.first())
+            return JsonResponse(products, status=200, safe=False)
+        return JsonResponse([], status=200, safe=False)
+
+    def get_basket_item(self, basket):
+        items = basket.item.all()
+        products = [i.product for i in items]
+        serializer = ProductShortSerializer(products, many=True)
+        products = serializer.data
+        for p in products:
+            count = (CartItem.objects
+                     .only('count')
+                     .get(product=p['id'], basket=basket))
+            p['count'] = count.count
+        return products
 
 
 class ProfileView(APIView):
@@ -185,18 +218,17 @@ class ProfileView(APIView):
         profile = request.data
         image = profile.pop('avatar')
         user = request.user
-        avatar, create = Image.objects.get_or_create(
-            src=image.get('src'),
-            alt=image.get('alt')
-        )
+
         profile, created = Profile.objects.update_or_create(
             user=user,
             defaults={
                 'fullName': profile.get('fullName'),
                 'phone': profile.get('phone'),
+                'email': profile.get('email'),
             }
         )
-        return HttpResponse("OK", status=200)
+        profile_data = ProfileSerialized(profile)
+        return JsonResponse(profile_data.data, safe=False, status=200)
 
 
 class AvatarView(APIView):
@@ -226,51 +258,70 @@ class PasswordView(APIView):
 
 
 class OrderView(APIView):
+
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
+        user = request.user
+        profile = Profile.objects.get(user=user)
         if pk is None:
-            user = request.user
-            queryset = (Order.objects
-                        .select_related('user')
-                        .prefetch_related('products')
-                        .filter(user=user.id))
-            serializer = OrderSerializer(queryset, many=True)
-            if serializer:
-                return JsonResponse(serializer.data, safe=False)
-            print(serializer.errors)
-            return HttpResponse('NO', status=500)
+            orders = Order.objects.prefetch_related('item').filter(user=profile)
+            serializer_order = OrderSerializer(orders, many=True)
+            order_list = serializer_order.data
+            for num in range(len(orders) - 1):
+                products = [i.product for i in orders[num].item.all()]
+                serializer_products = ProductShortSerializer(products, many=True)
+                order_list[num]['products'] = serializer_products.data
+            return JsonResponse(serializer_order.data, safe=False, status=200)
         else:
-            order = Order.objects.get(pk=pk)
-            serializer = OrderSerializer(order)
-            return JsonResponse(serializer.data, safe=False)
+            order = (Order.objects
+                     .prefetch_related('item')
+                     .select_related('user')
+                     .get(id=pk))
+            serialized_order = OrderSerializer(order)
+            order_data = serialized_order.data
+            products = [i.product for i in order.item.all()]
+            serializer_products = ProductShortSerializer(products, many=True)
+            product_list = serializer_products.data
+            for product in product_list:
+                item = CartItem.objects.get(product=product['id'], order=order)
+                product['count'] = item.count
+            order_data['products'] = product_list
+            return JsonResponse(order_data, safe=False, status=200)
 
     def post(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         user = request.user
         if pk is None:
-            print(request.data)
-            products = request.data
-            order, create = Order.objects.update_or_create(user=user.profile,
-                                                           defaults={'user': user.profile,
-                                                                     'createdAt': datetime.datetime.now(),
-                                                                     'totalCost': 0})
-            product_ids = [item["id"] for item in products]
-            order.products.add(*product_ids)
+            basket = Basket.objects.get(user=user)
+            items = CartItem.objects.filter(basket=basket)
+            order = Order.objects.create(user=user.profile,
+                                         createdAt=datetime.datetime.now(),
+                                         paymentType='not selected',
+                                         deliveryType='not selected',
+                                         status='being issued',
+                                         totalCost=0)
+            order.item.add(*items)
             return JsonResponse({'orderId': order.id}, status=200)
         else:
+            total_price = 0
+            user = request.user
             order_data = request.data
-            products = order_data.pop('products')
-            print(products)
-            order = Order.objects.filter(user=user.id, pk=pk)
+            order = Order.objects.filter(pk=pk)
+            basket = Basket.objects.filter(user=user)
+            if basket:
+                basket.first().delete()
+            items = CartItem.objects.select_related('product').filter(order=order.first())
+            for item in items:
+                price = item.count * item.product.price
+                total_price += price
             new_date = {
                 'deliveryType': order_data['deliveryType'],
                 'paymentType': order_data['paymentType'],
-                'totalCost': 0,
-                'status': order_data['status'],
+                'totalCost': total_price,
+                'status': 'awaiting payment',
                 'city': order_data['city'],
                 'address': order_data['address']
             }
-
             order.update(**new_date)
 
             return JsonResponse({'orderId': order.first().id}, status=200)
@@ -280,6 +331,9 @@ class PaymentView(APIView):
     def post(self, request, pk):
         serializer = PaymentSerializer(data=request.data)
         if serializer.is_valid():
+            order = Order.objects.get(pk=pk)
+            order.status = 'in transit'
+            order.save()
             serializer.save()
             return HttpResponse(status=200)
         return HttpResponse(status=500)
@@ -288,18 +342,95 @@ class PaymentView(APIView):
 class CatalogView(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductShortSerializer
-    filter_backends = [
-        SearchFilter,
-        DjangoFilterBackend,
-    ]
-    ordering_fields = ('price',)
-    search_fields = ('title',)
-    filterset_fields = ('price', 'category')
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['title']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('filter[name]')
+        minPrice = self.request.query_params.get('filter[minPrice]')
+        maxPrice = self.request.query_params.get('filter[maxPrice]')
+        freeDelivery = self.request.query_params.get('filter[freeDelivery]')
+        available = self.request.query_params.get('filter[available]')
+        category = self.request.query_params.get('category')
+        sort = self.request.query_params.get('sort')
+        sortType = self.request.query_params.get('sortType')
+        tags = self.request.GET.getlist('tags[]')
+        self.limit = int(self.request.query_params.get('limit', 10))
+        self.page = int(self.request.query_params.get('currentPage'))
+        print(tags)
+
+        sort_ord = (sort if sortType == 'dec' else f'-{sort}')
+        f = {'title__contains': name,
+             'price__gte': minPrice,
+             'price__lte': maxPrice,
+             'freeDelivery': (True if freeDelivery == 'true' else False),
+             'Available': (True if available == 'true' else False), }
+        if tags:
+            f['tags__in'] = tags
+        if category:
+            f['category'] = category
+
+        queryset = queryset.filter(**f).order_by(sort_ord)
+        self.count = queryset.count()
+        limit_page = self.limit * self.page
+        print(self.count)
+        return queryset[limit_page - self.limit:limit_page:]
 
     def list(self, request, *args, **kwargs):
         response = super().list(self, request, *args, **kwargs)
         response.data = response.data.get("results", [])
         response.data = {'items': response.data}
+        response.data['currentPage'] = self.page
+        response.data['lastPage'] = int(self.count / self.limit)
+
         return response
 
 
+class ReviewView(APIView):
+    def post(self, request, **kwargs):
+        pk = kwargs['pk']
+        data = request.data
+        review = Review.objects.create(**data)
+        product = Product.objects.get(id=pk)
+        product.reviews.add(review)
+        self.update_rate(product)
+        serializer = ReviewFullSerialized(product.reviews.all(), many=True)
+        return JsonResponse(serializer.data, safe=False)
+
+    def update_rate(self, product):
+        product.rating = (Review.objects
+        .filter(product=product.pk)
+        .aggregate(rate=Avg('rate'))['rate'])
+        product.save()
+
+
+class TagsView(APIView):
+    def get(self, request):
+        category = self.request.query_params.get('category')
+        if category is not None:
+            tags = (Tag.objects.filter(category=int(category)))
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
+        else:
+            tags = Tag.objects.all()
+            serialized = TagsSerializer(tags, many=True)
+            return JsonResponse(serialized.data, safe=False)
+
+
+class SaleView(APIView):
+    def get(self, request):
+        queryset = Product.objects.filter(salePrice__gte=1)
+        print(queryset.first().salePrice)
+        serialized = SaleProductSerializer(queryset, many=True)
+        print(serialized.data)
+        data = {'items': serialized.data}
+        return JsonResponse(data, safe=False)
+
+
+def delete_product(request, pk):
+    product = Product.objects.get(id=pk)
+    product.Available = False
+    product.save()
+    messages.success(request, f'Удален товар #{pk}')
+    return HttpResponseRedirect('/admin/frontend/product/')
