@@ -21,7 +21,7 @@
 ## 🛠 Технологический стек
 
 - **Backend:** Django 4.2+
-- **Database:** PostgreSQL
+- **Database:** Sqlite
 - **Web server:** Nginx
 - **Containerization:** Docker + Docker Compose
 - **Deployment:** Production-ready configuration
